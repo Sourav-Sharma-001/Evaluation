@@ -1,0 +1,23 @@
+.dashboard-container {
+  background-color: #424457;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+.sidebar-container {
+  width: 12vw;
+  height: 100vh;
+}
+
+.pages-container {
+  width: 88vw;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar a {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}

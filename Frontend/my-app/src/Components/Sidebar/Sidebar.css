@@ -1,0 +1,80 @@
+.sidebar a {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar {
+  background-color: #242531;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar hr {
+  border: none;
+  border-top: 0.15rem solid gray;
+  width: 100%;
+  margin: 0;
+}
+
+.sidebar-logo {
+  width: 100%;
+  height: 7%;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-logo img {
+  width: 15%;
+  height: 60%;
+  margin-left: 1rem;
+}
+
+.sidebar-pages {
+  width: 100%;
+  height: 86%;
+}
+
+.sidebar-item {
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1rem;
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+}
+
+.sidebar-icon {
+  font-size: 1rem;
+}
+
+.sidebar-profile {
+  width: 100%;
+  height: 7%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  margin-left: 1rem;
+}
+
+.profile-icon {
+  font-size: 1.5rem;
+}
+
+.profile-name {
+  font-size: 1rem;
+  margin-top: 0.2rem;
+}
+
+.sidebar-item.active {
+  background-color: #3a3c4f;
+  font-weight: 600;
+  border-radius: 1rem;
+  padding: 0.3rem 0;
+}
