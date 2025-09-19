@@ -1,19 +1,17 @@
 import React from "react";
 import {
   FaHome,
-  FaBox,
   FaFileInvoice,
   FaCog,
-  FaChartBar,
-  FaUserCircle,
+  FaChartBar,  
 } from "react-icons/fa";
 import "./Sidebar.css";
 
 export default function Sidebar() {
   return (
     <div className="sidebar">
-      <div className="sidebar-logo">
-        API
+      <div className="sidebar-heading">
+        API Management
       </div>
       <hr />
       <div className="sidebar-pages">
@@ -21,23 +19,15 @@ export default function Sidebar() {
           <FaHome className="sidebar-icon" /> Home
         </div>
         <div className="sidebar-item">
-          <FaBox className="sidebar-icon" /> Product
+          <FaFileInvoice className="sidebar-icon" /> Tracer
         </div>
         <div className="sidebar-item">
-          <FaFileInvoice className="sidebar-icon" /> Invoice
+          <FaChartBar className="sidebar-icon" /> Analysis
         </div>
         <div className="sidebar-item">
-          <FaChartBar className="sidebar-icon" /> Statistics
+          <FaCog className="sidebar-icon" /> Configuration
         </div>
-        <div className="sidebar-item">
-          <FaCog className="sidebar-icon" /> Settings
-        </div>
-      </div>
-      <hr />
-      <div className="sidebar-profile">
-        <FaUserCircle className="profile-icon" />
-        <span className="profile-name">John Doe</span>
-      </div>
+      </div>      
     </div>
   );
 }
