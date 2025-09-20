@@ -1,33 +1,19 @@
 import React from "react";
-import {
-  FaHome,
-  FaFileInvoice,
-  FaCog,
-  FaChartBar,  
-} from "react-icons/fa";
+import { FaHome, FaStream, FaChartBar, FaCog } from "react-icons/fa";
 import "./Sidebar.css";
 
 export default function Sidebar() {
   return (
-    <div className="sidebar">
-      <div className="sidebar-heading">
-        API Management
-      </div>
-      <hr />
-      <div className="sidebar-pages">
-        <div className="sidebar-item">
-          <FaHome className="sidebar-icon" /> Home
-        </div>
-        <div className="sidebar-item">
-          <FaFileInvoice className="sidebar-icon" /> Tracer
-        </div>
-        <div className="sidebar-item">
-          <FaChartBar className="sidebar-icon" /> Analysis
-        </div>
-        <div className="sidebar-item">
-          <FaCog className="sidebar-icon" /> Configuration
-        </div>
-      </div>      
-    </div>
+    <aside className="sidebar">
+      <h2 className="logo">API Management</h2>
+      <nav>
+        <ul>
+          <li className="active"><FaHome /> Home</li>
+          <li><FaStream /> Tracer</li>
+          <li><FaChartBar /> Analysis</li>
+          <li><FaCog /> Configuration</li>
+        </ul>
+      </nav>
+    </aside>
   );
 }
