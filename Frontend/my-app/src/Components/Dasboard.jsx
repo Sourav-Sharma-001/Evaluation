@@ -1,7 +1,7 @@
 import React from "react";
 import "./Dashboard.css";
 import Sidebar from "./Sidebar/Sidebar";
-import Analysis from "./Pages/Analysis/Analysis";
+import Config from "./Pages/Config/Config";
 
 export default function Dashboard() {
   return (
@@ -10,7 +10,7 @@ export default function Dashboard() {
         <Sidebar />
       </div>
       <div className="pages-container">
-        <Analysis />
+        <Config />
       </div>
     </div>
   );
