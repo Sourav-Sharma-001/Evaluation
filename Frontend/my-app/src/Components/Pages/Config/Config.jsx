@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import "./Config.css";
 
 export default function Config() {
+  const [showModal, setShowModal] = useState(false);
+
   const apiData = [
     { name: "/api/Social", startDate: "2024-01-01" },
     { name: "/api/Link", startDate: "2024-02-15" },
@@ -27,12 +29,70 @@ export default function Config() {
               <tr key={index}>
                 <td>{api.name}</td>
                 <td>{api.startDate}</td>
-                <td className="more-options">⋮</td>
+                <td
+                  className="more-options"
+                  onClick={() => setShowModal(true)}
+                >
+                  ⋮
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+          >
+            <h3 className="modal-title">Controls</h3>
+
+            <div className="modal-option">
+              <label>API</label>
+              <label className="switch">
+                <input type="checkbox" />
+                <span className="slider"></span>
+              </label>
+            </div>
+
+            <div className="modal-option">
+              <label>Tracer</label>
+              <label className="switch">
+                <input type="checkbox" />
+                <span className="slider"></span>
+              </label>
+            </div>
+
+            <div className="modal-option">
+              <label>Limit</label>
+              <label className="switch">
+                <input type="checkbox" />
+                <span className="slider"></span>
+              </label>
+            </div>
+
+            <div className="modal-option">
+              <label>Schedule On/Off</label>
+              <label className="switch">
+                <input type="checkbox" />
+                <span className="slider"></span>
+              </label>
+            </div>
+
+            <div className="time-inputs">
+              <label>Start Time:</label>
+              <input type="time" />
+              <label>End Time:</label>
+              <input type="time" />
+            </div>
+
+            <button className="save-btn">Save</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
