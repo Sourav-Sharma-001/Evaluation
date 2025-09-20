@@ -41,12 +41,11 @@ export default function Config() {
         </table>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div
             className="modal"
-            onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+            onClick={(e) => e.stopPropagation()}
           >
             <h3 className="modal-title">Controls</h3>
 
@@ -72,6 +71,21 @@ export default function Config() {
                 <input type="checkbox" />
                 <span className="slider"></span>
               </label>
+            </div>
+
+            <div className="limit-controls">
+              <label className="label">Number of Request</label>
+              <select className="small">
+                <option>0</option>
+                <option>10</option>
+                <option>20</option>
+              </select>
+              <label className="label">Rate</label>
+              <select className="rate">
+                <option>sec</option>
+                <option>min</option>
+                <option>hour</option>
+              </select>
             </div>
 
             <div className="modal-option">
