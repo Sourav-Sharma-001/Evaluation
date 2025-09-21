@@ -18,7 +18,7 @@ export default function Dashboard() {
           <Route path="/" element={<Home />} />
           <Route path="/tracer" element={<Tracer />} />
           <Route path="/analysis" element={<Analysis />} />
-          <Route path="/config" element={<Config />} />
+          <Route path="/config" element={<Config />} />          
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
