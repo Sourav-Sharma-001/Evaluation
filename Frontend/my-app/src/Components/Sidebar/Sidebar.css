@@ -35,7 +35,6 @@
   background: #1d4ed8;
 }
 
-/* Add this to style the Link inside li */
 .sidebar li a {
   display: flex;
   align-items: center;

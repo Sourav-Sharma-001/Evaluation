@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import "./Dashboard.css";
 import Sidebar from "./Sidebar/Sidebar";
 import Home from "./Pages/Home/Home";
@@ -19,6 +19,7 @@ export default function Dashboard() {
           <Route path="/tracer" element={<Tracer />} />
           <Route path="/analysis" element={<Analysis />} />
           <Route path="/config" element={<Config />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
     </div>
