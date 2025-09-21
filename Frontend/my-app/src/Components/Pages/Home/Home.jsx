@@ -18,16 +18,18 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Api-Social */}
           <div className="status-row">
             <span className="api-name">1 Api-Social</span>
             <div className="status-blocks">
               {Array(20).fill("green").map((c, i) => (
                 <span key={i} className="status-block green"></span>
               ))}
+              <span className="status-check">✔</span>
             </div>
-            <span className="status-check">✔</span>
           </div>
 
+          {/* Api-link */}
           <div className="status-row">
             <span className="api-name">2 Api-link</span>
             <div className="status-blocks">
@@ -37,38 +39,41 @@ export default function Home() {
               ].map((c, i) => (
                 <span key={i} className={`status-block ${c}`}></span>
               ))}
+              <span className="status-cross">✖</span>
             </div>
-            <span className="status-cross">✖</span>
           </div>
 
+          {/* Api-Data */}
           <div className="status-row">
             <span className="api-name">3 Api-Data</span>
             <div className="status-blocks">
               {Array(18).fill("green").map((c, i) => (
                 <span key={i} className="status-block green"></span>
               ))}
+              <span className="status-check">✔</span>
             </div>
-            <span className="status-check">✔</span>
           </div>
 
+          {/* Api-Weather */}
           <div className="status-row">
             <span className="api-name">4 Api-Weather</span>
             <div className="status-blocks">
               {Array(18).fill("green").map((c, i) => (
                 <span key={i} className="status-block green"></span>
               ))}
+              <span className="status-check">✔</span>
             </div>
-            <span className="status-check">✔</span>
           </div>
 
+          {/* Api-Inventory */}
           <div className="status-row">
             <span className="api-name">5 Api-Inventory</span>
             <div className="status-blocks">
               {Array(18).fill("green").map((c, i) => (
                 <span key={i} className="status-block green"></span>
               ))}
+              <span className="status-check">✔</span>
             </div>
-            <span className="status-check">✔</span>
           </div>
         </div>
       </div>
