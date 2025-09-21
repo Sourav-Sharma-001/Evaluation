@@ -24,9 +24,14 @@ mongoose.connect(process.env.MONGO_URI)
     process.exit(1);
   });
 
+// API routes
+const apiRoutes = require("./routes/apiRoute");
+app.use("/api", apiRoutes);
+
 // Example Node-cron task (runs every minute)
-cron.schedule("* * * * *", () => {
+cron.schedule("* * * * *", async () => {
   console.log("🕒 Cron job running every minute");
+  // You can call a function here later to auto-check APIs
 });
 
 // 404 handler for unknown routes
