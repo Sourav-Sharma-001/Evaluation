@@ -1,7 +1,7 @@
 import React from "react";
 import "./Dashboard.css";
 import Sidebar from "./Sidebar/Sidebar";
-import Config from "./Pages/Config/Config";
+import Home from "./Pages/Home/Home"
 
 export default function Dashboard() {
   return (
@@ -10,7 +10,7 @@ export default function Dashboard() {
         <Sidebar />
       </div>
       <div className="pages-container">
-        <Config />
+        <Home />
       </div>
     </div>
   );

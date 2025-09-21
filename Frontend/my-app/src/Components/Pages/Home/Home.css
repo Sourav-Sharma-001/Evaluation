@@ -1,7 +1,7 @@
-
 .home-container {
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
 
 .home-heading {
@@ -9,6 +9,7 @@
   height: 7%;
   place-self: center;  
   place-content: center;
+  margin-top: 1rem;  
 }
 
 .home-heading h2 {
@@ -22,7 +23,68 @@
 }
 
 .api-display-container {
-  width: 90%;
-  background-color: aqua;
+  width: 100%;
   color: white;
+  font-family: Arial, sans-serif;
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.month-nav span {
+  margin: 0 0.5rem;
+  cursor: pointer;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.api-name {
+  width: 8rem;
+  font-size: 0.9rem;
+}
+
+.status-blocks {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.status-block {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 0.4rem;
+}
+
+.green {
+  background-color: #00b300;
+}
+.orange {
+  background-color: orange;
+}
+.yellow {
+  background-color: goldenrod;
+}
+
+.status-check {
+  margin-left: auto;
+  color: #00ff00;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.status-cross {
+  margin-left: auto;
+  color: red;
+  font-weight: bold;
+  font-size: 1rem;
 }
