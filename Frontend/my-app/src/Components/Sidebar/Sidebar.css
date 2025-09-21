@@ -34,3 +34,13 @@
 .sidebar .active {
   background: #1d4ed8;
 }
+
+/* Add this to style the Link inside li */
+.sidebar li a {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: inherit;
+  text-decoration: none;
+  width: 100%;
+}
