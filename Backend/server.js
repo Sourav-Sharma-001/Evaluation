@@ -4,7 +4,7 @@ const cors = require("cors");
 const cron = require("node-cron");
 require("dotenv").config();
 
-const { checkAllApis } = require("./controllers/checker");
+const { checkAllApis } = require("./controllers/checkers");
 const apiRoutes = require("./routes/apiRoute");
 
 const app = express();
@@ -28,11 +28,28 @@ app.use("/api", apiRoutes);
 
 // Cron: run checkAllApis every minute
 cron.schedule("* * * * *", async () => {
-  try {
-    const result = await checkAllApis();
-    console.log("🕒 Cron checked APIs:", result);
-  } catch (err) {
-    console.error("Cron failed:", err);
+  console.log("🕒 Cron job running every minute");
+
+  const apis = await ApiStatus.find(); // fetch all APIs to check
+
+  for (const api of apis) {
+    const start = Date.now();
+    let status = "offline";
+
+    try {
+      const response = await fetch(api.endpoint);
+      status = response.ok ? "online" : "offline";
+    } catch {
+      status = "offline";
+    }
+
+    await ApiStatus.create({
+      name: api.name,
+      endpoint: api.endpoint,
+      status: status,
+      responseTime: Date.now() - start,
+      lastChecked: new Date()
+    });
   }
 });
 

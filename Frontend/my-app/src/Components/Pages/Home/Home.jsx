@@ -5,10 +5,19 @@ export default function Home() {
   const [apis, setApis] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/status")
-      .then((res) => res.json())
-      .then((data) => setApis(data))
-      .catch((err) => console.error("Error fetching API status:", err));
+    const fetchStatuses = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/status");
+        const data = await res.json();
+        setApis(data);
+      } catch (err) {
+        console.error("Error fetching API statuses:", err);
+      }
+    };
+
+    fetchStatuses();
+    const interval = setInterval(fetchStatuses, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const getBlockColor = (statusCode) => {
@@ -16,7 +25,7 @@ export default function Home() {
     if (statusCode >= 300 && statusCode < 400) return "orange";
     if (statusCode >= 400 && statusCode < 600) return "red";
     if (statusCode >= 100 && statusCode < 200) return "yellow";
-    return "gray"; // fallback
+    return "gray";
   };
 
   return (
@@ -35,30 +44,30 @@ export default function Home() {
             </div>
           </div>
 
-          {apis.map((api, index) => {
-            const statuses = api.statuses || [];
-            const latest = statuses[statuses.length - 1];
-            const latestOk = latest >= 200 && latest < 300;
-
-            return (
-              <div className="status-row" key={index}>
-                <span className="api-name">{index + 1} {api.name}</span>
-                <div className="status-blocks">
-                  {statuses.map((code, i) => (
-                    <span
-                      key={i}
-                      className={`status-block ${getBlockColor(code)}`}
-                    ></span>
-                  ))}
-                  {latestOk ? (
-                    <span className="status-check">✔</span>
-                  ) : (
-                    <span className="status-cross">✖</span>
-                  )}
+          {apis.length === 0 ? (
+            <p>Loading APIs...</p>
+          ) : (
+            apis.map((api, index) => {
+              const statuses = api.statuses || [];
+              const last = statuses[statuses.length - 1];
+              const lastOk = last >= 200 && last < 300;
+              return (
+                <div className="status-row" key={api._id || index}>
+                  <span className="api-name">{index + 1}. {api.name}</span>
+                  <div className="status-blocks">
+                    {statuses.map((code, i) => (
+                      <span key={i} className={`status-block ${getBlockColor(code)}`}></span>
+                    ))}
+                    {lastOk ? (
+                      <span className="status-check">✔</span>
+                    ) : (
+                      <span className="status-cross">✖</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </div>

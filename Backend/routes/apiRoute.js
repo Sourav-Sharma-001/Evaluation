@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const ApiStatus = require("../models/apiStatusSchema");
-const { checkAllApis } = require("../controllers/checker");
+const { checkAllApis } = require("../controllers/checkers");
 
 // Get all APIs with their statuses
 router.get("/status", async (req, res) => {
