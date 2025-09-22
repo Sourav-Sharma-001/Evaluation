@@ -8,8 +8,16 @@ export default function Home() {
     fetch("http://localhost:5000/api/status")
       .then((res) => res.json())
       .then((data) => setApis(data))
-      .catch((err) => console.error(err));
+      .catch((err) => console.error("Error fetching API status:", err));
   }, []);
+
+  const getBlockColor = (statusCode) => {
+    if (statusCode >= 200 && statusCode < 300) return "green";
+    if (statusCode >= 300 && statusCode < 400) return "orange";
+    if (statusCode >= 400 && statusCode < 600) return "red";
+    if (statusCode >= 100 && statusCode < 200) return "yellow";
+    return "gray"; // fallback
+  };
 
   return (
     <div className="home-container">
@@ -27,25 +35,30 @@ export default function Home() {
             </div>
           </div>
 
-          {apis.length === 0 ? (
-            <p>Loading APIs...</p>
-          ) : (
-            apis.map((api, index) => (
-              <div key={api._id} className="status-row">
+          {apis.map((api, index) => {
+            const statuses = api.statuses || [];
+            const latest = statuses[statuses.length - 1];
+            const latestOk = latest >= 200 && latest < 300;
+
+            return (
+              <div className="status-row" key={index}>
                 <span className="api-name">{index + 1} {api.name}</span>
                 <div className="status-blocks">
-                  {api.blocks && api.blocks.map((color, i) => (
-                    <span key={i} className={`status-block ${color}`}></span>
+                  {statuses.map((code, i) => (
+                    <span
+                      key={i}
+                      className={`status-block ${getBlockColor(code)}`}
+                    ></span>
                   ))}
-                  {api.status === "online" ? (
+                  {latestOk ? (
                     <span className="status-check">✔</span>
                   ) : (
                     <span className="status-cross">✖</span>
                   )}
                 </div>
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
       </div>
     </div>
