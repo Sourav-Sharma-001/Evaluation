@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const cron = require("node-cron");
 require("dotenv").config();
+const ApiStatus = require("./models/apiStatusSchema");
+
 
 const { checkAllApis } = require("./controllers/checkers");
 const apiRoutes = require("./routes/apiRoute");
