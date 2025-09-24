@@ -53,10 +53,15 @@ export default function Home() {
               const lastOk = last >= 200 && last < 300;
               return (
                 <div className="status-row" key={api._id || index}>
-                  <span className="api-name">{index + 1}. {api.name}</span>
+                  <span className="api-name">
+                    {index + 1}. {api.name}
+                  </span>
                   <div className="status-blocks">
                     {statuses.map((code, i) => (
-                      <span key={i} className={`status-block ${getBlockColor(code)}`}></span>
+                      <span
+                        key={i}
+                        className={`status-block ${getBlockColor(code)}`}
+                      ></span>
                     ))}
                     {lastOk ? (
                       <span className="status-check">✔</span>
