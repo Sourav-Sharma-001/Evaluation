@@ -3,15 +3,29 @@ import "./Home.css";
 
 export default function Home() {
   const [apis, setApis] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/status");
+        const res = await fetch("http://localhost:5000/api/status"); // using your URL
+        if (!res.ok) throw new Error(`Server responded with ${res.status}`);
         const data = await res.json();
-        setApis(data);
+
+        if (Array.isArray(data)) {
+          setApis(data);
+          setError(null);
+        } else {
+          setApis([]);
+          setError("API returned unexpected format");
+        }
       } catch (err) {
-        console.error("Error fetching API statuses:", err);
+        console.error("Fetch error:", err);
+        setError("Failed to fetch API data");
+        setApis([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -44,13 +58,18 @@ export default function Home() {
             </div>
           </div>
 
-          {apis.length === 0 ? (
+          {loading ? (
             <p>Loading APIs...</p>
+          ) : error ? (
+            <p style={{ color: "red" }}>{error}</p>
+          ) : apis.length === 0 ? (
+            <p>No APIs found.</p>
           ) : (
             apis.map((api, index) => {
-              const statuses = api.statuses || [];
-              const last = statuses[statuses.length - 1];
-              const lastOk = last >= 200 && last < 300;
+              const statuses = Array.isArray(api.statuses) ? api.statuses : [];
+              const last = statuses.length ? statuses[statuses.length - 1] : null;
+              const lastOk = last !== null && last >= 200 && last < 300;
+
               return (
                 <div className="status-row" key={api._id || index}>
                   <span className="api-name">
@@ -63,10 +82,12 @@ export default function Home() {
                         className={`status-block ${getBlockColor(code)}`}
                       ></span>
                     ))}
-                    {lastOk ? (
-                      <span className="status-check">✔</span>
-                    ) : (
-                      <span className="status-cross">✖</span>
+                    {last !== null && (
+                      lastOk ? (
+                        <span className="status-check">✔</span>
+                      ) : (
+                        <span className="status-cross">✖</span>
+                      )
                     )}
                   </div>
                 </div>
