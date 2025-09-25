@@ -76,6 +76,9 @@
 .yellow {
   background-color: goldenrod;
 }
+.red {
+  background-color: red;
+}
 
 .status-check {
   margin-left: 1rem;
