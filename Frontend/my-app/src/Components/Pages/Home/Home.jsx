@@ -9,7 +9,7 @@ export default function Home() {
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/status"); // using your URL
+        const res = await fetch("http://localhost:5000/api/status"); 
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
         const data = await res.json();
 

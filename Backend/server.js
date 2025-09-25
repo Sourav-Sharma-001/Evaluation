@@ -3,10 +3,8 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const cron = require("node-cron");
 require("dotenv").config();
+
 const ApiStatus = require("./models/apiStatusSchema");
-
-
-const { checkAllApis } = require("./controllers/checkers");
 const apiRoutes = require("./routes/apiRoute");
 
 const app = express();
@@ -19,6 +17,7 @@ app.get("/", (req, res) => {
   res.send("Server is running...");
 });
 
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch(err => {
@@ -26,40 +25,49 @@ mongoose.connect(process.env.MONGO_URI)
     process.exit(1);
   });
 
+// Use routes
 app.use("/api", apiRoutes);
 
-// Cron: run checkAllApis every minute
+// Cron job: check APIs every minute
 cron.schedule("* * * * *", async () => {
-  console.log("🕒 Cron job running every minute");
+  console.log("🕒 Cron job running...");
 
-  const apis = await ApiStatus.find(); // fetch all APIs to check
+  try {
+    const apis = await ApiStatus.find();
 
-  for (const api of apis) {
-    const start = Date.now();
-    let status = "offline";
+    for (const api of apis) {
+      const start = Date.now();
+      let statusCode = 0;
 
-    try {
-      const response = await fetch(api.endpoint);
-      status = response.ok ? "online" : "offline";
-    } catch {
-      status = "offline";
+      try {
+        const response = await fetch(api.endpoint);
+        statusCode = response.status; // numeric status code
+      } catch {
+        statusCode = 0; // 0 = could not connect
+      }
+
+      // Push new status into history
+      api.statuses.push(statusCode);
+
+      // (Optional) keep only last 30 checks
+      if (api.statuses.length > 30) {
+        api.statuses = api.statuses.slice(-30);
+      }
+
+      api.lastChecked = new Date();
+      await api.save();
     }
-
-    await ApiStatus.create({
-      name: api.name,
-      endpoint: api.endpoint,
-      status: status,
-      responseTime: Date.now() - start,
-      lastChecked: new Date()
-    });
+  } catch (err) {
+    console.error("❌ Cron job error:", err.message);
   }
 });
 
-// 404
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
