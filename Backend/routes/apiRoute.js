@@ -3,44 +3,42 @@ const router = express.Router();
 const ApiStatus = require("../models/apiStatusSchema");
 const { checkAllApis } = require("../controllers/checkers");
 
-// Get all APIs with pagination + time filtering
+// Get all APIs with their statuses (paginated + date range)
 router.get("/status", async (req, res) => {
-  const { from, to, page = 1 } = req.query;
-  const limit = 30;
-
   try {
-    const fromDate = from ? new Date(from) : new Date("1970-01-01");
-    const toDate = to ? new Date(to) : new Date();
+    const { from, to, page = 1 } = req.query;
+    const limit = 5; // APIs per page
+    const skip = (page - 1) * limit;
 
-    const allApis = await ApiStatus.find().sort({ name: 1 });
-
-    const filteredApis = allApis.map(api => {
-      const filteredStatuses = api.statuses.filter(s => {
-        const ts = new Date(s.timestamp);
-        return ts >= fromDate && ts <= toDate;
-      });
-      return {
-        _id: api._id,
-        name: api.name,
-        endpoint: api.endpoint,
-        statuses: filteredStatuses,
+    // Date filtering
+    let matchDates = {};
+    if (from || to) {
+      matchDates = {
+        "statuses.timestamp": {}
       };
-    });
+      if (from) matchDates["statuses.timestamp"].$gte = new Date(from);
+      if (to) matchDates["statuses.timestamp"].$lte = new Date(to);
+    }
 
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const pagedData = filteredApis.slice(start, end);
+    const totalApis = await ApiStatus.countDocuments();
+    const totalPages = Math.ceil(totalApis / limit);
+
+    const apis = await ApiStatus.find(matchDates)
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(); // lean() for plain JS objects
 
     res.json({
-      data: pagedData,
+      data: apis,
       pagination: {
         currentPage: Number(page),
-        totalPages: Math.ceil(filteredApis.length / limit),
-      },
+        totalPages
+      }
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message });
   }
 });
 
