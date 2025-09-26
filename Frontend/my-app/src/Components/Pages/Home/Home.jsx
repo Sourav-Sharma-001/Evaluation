@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "./Home.css";
 
 export default function Home() {
@@ -6,38 +6,63 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // NEW: state for time range
+  // Time range
   const [fromDate, setFromDate] = useState("2025-01-01");
   const [toDate, setToDate] = useState("2025-04-30");
 
+  // Pagination / infinite scroll
+  const [page, setPage] = useState(1);
+  const containerRef = useRef(null);
+
+  // Fetch API statuses
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
+        if (page === 1) setLoading(true); // show loading only for first page
         const res = await fetch(
-          `http://localhost:5000/api/status?from=${fromDate}&to=${toDate}`
+          `http://localhost:5000/api/status?from=${fromDate}&to=${toDate}&page=${page}`
         );
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-        const data = await res.json();
+        const result = await res.json();
 
-        if (Array.isArray(data)) {
-          setApis(data);
+        if (Array.isArray(result.data)) {
+          if (page === 1) setApis(result.data);
+          else setApis((prev) => [...prev, ...result.data]); // append new page
           setError(null);
         } else {
-          setApis([]);
+          if (page === 1) setApis([]);
           setError("API returned unexpected format");
         }
       } catch (err) {
         console.error("Fetch error:", err);
+        if (page === 1) setApis([]);
         setError("Failed to fetch API data");
-        setApis([]);
       } finally {
-        setLoading(false);
+        if (page === 1) setLoading(false);
       }
     };
 
     fetchStatuses();
-  }, [fromDate, toDate]); // re-fetch when dates change
+  }, [fromDate, toDate, page]);
 
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setPage((prev) => prev + 1);
+      },
+      { root: containerRef.current, threshold: 1.0 }
+    );
+
+    const lastApi = containerRef.current?.lastElementChild;
+    if (lastApi) observer.observe(lastApi);
+
+    return () => {
+      if (lastApi) observer.unobserve(lastApi);
+    };
+  }, [apis]);
+
+  // Status color
   const getBlockColor = (statusCode) => {
     if (statusCode >= 200 && statusCode < 300) return "green";
     if (statusCode >= 300 && statusCode < 400) return "orange";
@@ -51,18 +76,23 @@ export default function Home() {
       <div className="home-heading">
         <h2>Home</h2>
       </div>
+
       <div className="api-container">
-        <div className="api-display-container">
+        <div className="api-display-container" ref={containerRef}>
           <div className="status-header">
             <span>System status</span>
-            {/* NEW: time range selector */}
+
+            {/* Time range selector */}
             <div className="time-range">
               <label>
                 From:{" "}
                 <input
                   type="date"
                   value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
+                  onChange={(e) => {
+                    setFromDate(e.target.value);
+                    setPage(1); // reset page on date change
+                  }}
                 />
               </label>
               <label>
@@ -70,7 +100,10 @@ export default function Home() {
                 <input
                   type="date"
                   value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
+                  onChange={(e) => {
+                    setToDate(e.target.value);
+                    setPage(1); // reset page on date change
+                  }}
                 />
               </label>
             </div>
@@ -86,7 +119,10 @@ export default function Home() {
             apis.map((api, index) => {
               const statuses = Array.isArray(api.statuses) ? api.statuses : [];
               const last = statuses.length ? statuses[statuses.length - 1] : null;
-              const lastOk = last !== null && last >= 200 && last < 300;
+              const lastOk =
+                last !== null &&
+                last.statusCode >= 200 &&
+                last.statusCode < 300;
 
               return (
                 <div className="status-row" key={api._id || index}>
@@ -94,19 +130,21 @@ export default function Home() {
                     {index + 1}. {api.name}
                   </span>
                   <div className="status-blocks">
-                    {statuses.map((code, i) => (
+                    {statuses.map((s, i) => (
                       <span
                         key={i}
-                        className={`status-block ${getBlockColor(code)}`}
+                        className={`status-block ${getBlockColor(s.statusCode)}`}
+                        title={`${s.statusCode} @ ${new Date(
+                          s.timestamp
+                        ).toLocaleString()}`}
                       ></span>
                     ))}
-                    {last !== null && (
-                      lastOk ? (
+                    {last !== null &&
+                      (lastOk ? (
                         <span className="status-check">✔</span>
                       ) : (
                         <span className="status-cross">✖</span>
-                      )
-                    )}
+                      ))}
                   </div>
                 </div>
               );

@@ -41,15 +41,13 @@ cron.schedule("* * * * *", async () => {
 
       try {
         const response = await fetch(api.endpoint);
-        statusCode = response.status; // numeric status code
+        statusCode = response.status;
       } catch {
-        statusCode = 0; // 0 = could not connect
+        statusCode = 0; // could not connect
       }
 
-      // Push new status into history
-      api.statuses.push(statusCode);
+      api.statuses.push({ statusCode, timestamp: new Date() });
 
-      // (Optional) keep only last 30 checks
       if (api.statuses.length > 30) {
         api.statuses = api.statuses.slice(-30);
       }

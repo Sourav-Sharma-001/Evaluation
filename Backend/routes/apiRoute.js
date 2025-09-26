@@ -3,13 +3,44 @@ const router = express.Router();
 const ApiStatus = require("../models/apiStatusSchema");
 const { checkAllApis } = require("../controllers/checkers");
 
-// Get all APIs with their statuses
+// Get all APIs with pagination + time filtering
 router.get("/status", async (req, res) => {
+  const { from, to, page = 1 } = req.query;
+  const limit = 30;
+
   try {
-    const apis = await ApiStatus.find().sort({ name: 1 });
-    res.json(apis);
+    const fromDate = from ? new Date(from) : new Date("1970-01-01");
+    const toDate = to ? new Date(to) : new Date();
+
+    const allApis = await ApiStatus.find().sort({ name: 1 });
+
+    const filteredApis = allApis.map(api => {
+      const filteredStatuses = api.statuses.filter(s => {
+        const ts = new Date(s.timestamp);
+        return ts >= fromDate && ts <= toDate;
+      });
+      return {
+        _id: api._id,
+        name: api.name,
+        endpoint: api.endpoint,
+        statuses: filteredStatuses,
+      };
+    });
+
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const pagedData = filteredApis.slice(start, end);
+
+    res.json({
+      data: pagedData,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(filteredApis.length / limit),
+      },
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

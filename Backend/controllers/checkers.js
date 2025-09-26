@@ -11,10 +11,12 @@ async function checkAllApis() {
       code = 500; // treat fetch error as server error
     }
 
-    api.statuses.push(code);
+    api.statuses.push({ statusCode: code, timestamp: new Date() });
+
     if (api.statuses.length > 100) {
-      api.statuses.shift(); // keep history bounded (100). adjust as needed
+      api.statuses.shift(); // keep history bounded
     }
+
     api.lastChecked = new Date();
     await api.save();
   }
