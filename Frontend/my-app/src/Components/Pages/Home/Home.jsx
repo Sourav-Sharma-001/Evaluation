@@ -6,10 +6,16 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // NEW: state for time range
+  const [fromDate, setFromDate] = useState("2025-01-01");
+  const [toDate, setToDate] = useState("2025-04-30");
+
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/status"); 
+        const res = await fetch(
+          `http://localhost:5000/api/status?from=${fromDate}&to=${toDate}`
+        );
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
         const data = await res.json();
 
@@ -30,9 +36,7 @@ export default function Home() {
     };
 
     fetchStatuses();
-    const interval = setInterval(fetchStatuses, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [fromDate, toDate]); // re-fetch when dates change
 
   const getBlockColor = (statusCode) => {
     if (statusCode >= 200 && statusCode < 300) return "green";
@@ -51,10 +55,24 @@ export default function Home() {
         <div className="api-display-container">
           <div className="status-header">
             <span>System status</span>
-            <div className="month-nav">
-              <span>&lt;</span>
-              <span>Jan 2025</span>
-              <span>&gt;</span>
+            {/* NEW: time range selector */}
+            <div className="time-range">
+              <label>
+                From:{" "}
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                />
+              </label>
+              <label>
+                To:{" "}
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                />
+              </label>
             </div>
           </div>
 
