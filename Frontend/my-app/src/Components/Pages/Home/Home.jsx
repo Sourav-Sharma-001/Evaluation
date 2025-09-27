@@ -12,13 +12,15 @@ export default function Home() {
 
   // Pagination / infinite scroll
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const containerRef = useRef(null);
 
   // Fetch API statuses
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        if (page === 1) setLoading(true); // show loading only for first page
+        if (page === 1) setLoading(true);
+
         const res = await fetch(
           `http://localhost:5000/api/status?from=${fromDate}&to=${toDate}&page=${page}`
         );
@@ -27,7 +29,8 @@ export default function Home() {
 
         if (Array.isArray(result.data)) {
           if (page === 1) setApis(result.data);
-          else setApis((prev) => [...prev, ...result.data]); // append new page
+          else setApis(prev => [...prev, ...result.data]);
+          setTotalPages(result.pagination?.totalPages || 1);
           setError(null);
         } else {
           if (page === 1) setApis([]);
@@ -47,9 +50,10 @@ export default function Home() {
 
   // Infinite scroll observer
   useEffect(() => {
+    if (page >= totalPages) return; // stop if last page reached
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) setPage((prev) => prev + 1);
+        if (entry.isIntersecting) setPage(prev => prev + 1);
       },
       { root: containerRef.current, threshold: 1.0 }
     );
@@ -60,7 +64,7 @@ export default function Home() {
     return () => {
       if (lastApi) observer.unobserve(lastApi);
     };
-  }, [apis]);
+  }, [apis, page, totalPages]);
 
   // Status color
   const getBlockColor = (statusCode) => {
@@ -91,7 +95,7 @@ export default function Home() {
                   value={fromDate}
                   onChange={(e) => {
                     setFromDate(e.target.value);
-                    setPage(1); // reset page on date change
+                    setPage(1);
                   }}
                 />
               </label>
@@ -102,7 +106,7 @@ export default function Home() {
                   value={toDate}
                   onChange={(e) => {
                     setToDate(e.target.value);
-                    setPage(1); // reset page on date change
+                    setPage(1);
                   }}
                 />
               </label>
@@ -118,11 +122,8 @@ export default function Home() {
           ) : (
             apis.map((api, index) => {
               const statuses = Array.isArray(api.statuses) ? api.statuses : [];
-              const last = statuses.length ? statuses[statuses.length - 1] : null;
-              const lastOk =
-                last !== null &&
-                last.statusCode >= 200 &&
-                last.statusCode < 300;
+              const lastStatus = statuses.length ? statuses[statuses.length - 1] : null;
+              const lastOk = lastStatus?.statusCode >= 200 && lastStatus?.statusCode < 300;
 
               return (
                 <div className="status-row" key={api._id || index}>
@@ -134,17 +135,15 @@ export default function Home() {
                       <span
                         key={i}
                         className={`status-block ${getBlockColor(s.statusCode)}`}
-                        title={`${s.statusCode} @ ${new Date(
-                          s.timestamp
-                        ).toLocaleString()}`}
                       ></span>
                     ))}
-                    {last !== null &&
-                      (lastOk ? (
+                    {lastStatus && (
+                      lastOk ? (
                         <span className="status-check">✔</span>
                       ) : (
                         <span className="status-cross">✖</span>
-                      ))}
+                      )
+                    )}
                   </div>
                 </div>
               );
