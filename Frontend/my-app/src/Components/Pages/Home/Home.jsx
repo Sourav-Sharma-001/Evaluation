@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import "./Home.css";
 
 export default function Home() {
@@ -6,9 +8,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Time range
-  const [fromDate, setFromDate] = useState("2025-01-01");
-  const [toDate, setToDate] = useState("2025-04-30");
+  // Time range (use Date objects now)
+  const [fromDate, setFromDate] = useState(new Date("2025-01-01"));
+  const [toDate, setToDate] = useState(new Date("2025-04-30"));
 
   // Pagination / infinite scroll
   const [page, setPage] = useState(1);
@@ -22,7 +24,7 @@ export default function Home() {
         if (page === 1) setLoading(true);
 
         const res = await fetch(
-          `http://localhost:5000/api/status?from=${fromDate}&to=${toDate}&page=${page}`
+          `http://localhost:5000/api/status?from=${fromDate.toISOString().split("T")[0]}&to=${toDate.toISOString().split("T")[0]}&page=${page}`
         );
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
         const result = await res.json();
@@ -55,7 +57,7 @@ export default function Home() {
 
   // Infinite scroll observer
   useEffect(() => {
-    if (page >= totalPages) return; // stop if last page reached
+    if (page >= totalPages) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) setPage(prev => prev + 1);
@@ -91,22 +93,22 @@ export default function Home() {
           <div className="status-header">
             <span>System status</span>
 
-            {/* Time range selector */}
+            {/* Time range selector using React Date Picker */}
             <div className="time-range">
               <label>
                 From:{" "}
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
+                <DatePicker
+                  selected={fromDate}
+                  onChange={(date) => setFromDate(date)}
+                  dateFormat="yyyy-MM-dd"
                 />
               </label>
               <label>
                 To:{" "}
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
+                <DatePicker
+                  selected={toDate}
+                  onChange={(date) => setToDate(date)}
+                  dateFormat="yyyy-MM-dd"
                 />
               </label>
             </div>
