@@ -48,6 +48,11 @@ export default function Home() {
     fetchStatuses();
   }, [fromDate, toDate, page]);
 
+  // Reset page when dates change
+  useEffect(() => {
+    setPage(1);
+  }, [fromDate, toDate]);
+
   // Infinite scroll observer
   useEffect(() => {
     if (page >= totalPages) return; // stop if last page reached
@@ -93,10 +98,7 @@ export default function Home() {
                 <input
                   type="date"
                   value={fromDate}
-                  onChange={(e) => {
-                    setFromDate(e.target.value);
-                    setPage(1);
-                  }}
+                  onChange={(e) => setFromDate(e.target.value)}
                 />
               </label>
               <label>
@@ -104,10 +106,7 @@ export default function Home() {
                 <input
                   type="date"
                   value={toDate}
-                  onChange={(e) => {
-                    setToDate(e.target.value);
-                    setPage(1);
-                  }}
+                  onChange={(e) => setToDate(e.target.value)}
                 />
               </label>
             </div>

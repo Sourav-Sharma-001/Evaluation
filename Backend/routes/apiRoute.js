@@ -27,6 +27,7 @@ router.get("/status", async (req, res) => {
         if (dateFilter.$lte && t > dateFilter.$lte) return false;
         return true;
       });
+
       return {
         _id: api._id,
         name: api.name,
@@ -36,7 +37,8 @@ router.get("/status", async (req, res) => {
       };
     });
 
-    const totalPages = Math.ceil(filteredApis.length / limit);
+    // Apply pagination
+    const totalPages = Math.max(1, Math.ceil(filteredApis.length / limit));
     const start = (page - 1) * limit;
     const end = start + limit;
     const paginatedData = filteredApis.slice(start, end);
@@ -49,7 +51,7 @@ router.get("/status", async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching statuses:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -61,10 +63,17 @@ router.post("/status", async (req, res) => {
     if (!name || !endpoint) {
       return res.status(400).json({ message: "name and endpoint required" });
     }
-    const api = new ApiStatus({ name, endpoint, statuses: [] });
+
+    const api = new ApiStatus({
+      name,
+      endpoint,
+      statuses: [] // start with empty history
+    });
+
     await api.save();
     res.status(201).json(api);
   } catch (err) {
+    console.error("Error creating API entry:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -75,6 +84,7 @@ router.post("/check", async (req, res) => {
     const result = await checkAllApis();
     res.json(result);
   } catch (err) {
+    console.error("Error checking APIs:", err);
     res.status(500).json({ message: err.message });
   }
 });
