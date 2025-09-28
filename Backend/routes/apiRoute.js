@@ -11,20 +11,19 @@ router.get("/status", async (req, res) => {
     limit = parseInt(limit);
 
     // Build date filter if provided
-    const dateFilter = {};
-    if (from) dateFilter.$gte = new Date(from);
-    if (to) dateFilter.$lte = new Date(to);
+    const fromDate = from ? new Date(from) : null;
+    const toDate = to ? new Date(to) : null;
 
     // Fetch all APIs
     const allApis = await ApiStatus.find().sort({ name: 1 });
 
-    // Filter statuses by date
+    // Filter statuses by date (keep ALL matches in range)
     const filteredApis = allApis.map(api => {
       const statuses = api.statuses.filter(s => {
         if (!s.timestamp) return true; // keep if timestamp missing
         const t = new Date(s.timestamp);
-        if (dateFilter.$gte && t < dateFilter.$gte) return false;
-        if (dateFilter.$lte && t > dateFilter.$lte) return false;
+        if (fromDate && t < fromDate) return false;
+        if (toDate && t > toDate) return false;
         return true;
       });
 
@@ -32,12 +31,12 @@ router.get("/status", async (req, res) => {
         _id: api._id,
         name: api.name,
         endpoint: api.endpoint,
-        statuses,
+        statuses, // all statuses in range
         lastChecked: api.lastChecked
       };
     });
 
-    // Apply pagination
+    // Apply pagination only to API list, not statuses
     const totalPages = Math.max(1, Math.ceil(filteredApis.length / limit));
     const start = (page - 1) * limit;
     const end = start + limit;

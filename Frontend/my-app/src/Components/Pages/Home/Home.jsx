@@ -4,63 +4,69 @@ import "react-datepicker/dist/react-datepicker.css";
 import "./Home.css";
 
 export default function Home() {
-  const [apis, setApis] = useState([]);
+  const [allApis, setAllApis] = useState([]); // full dataset from backend
+  const [visibleApis, setVisibleApis] = useState([]); // progressively shown
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Time range (use Date objects now)
+  // Time range (default)
   const [fromDate, setFromDate] = useState(new Date("2025-01-01"));
   const [toDate, setToDate] = useState(new Date("2025-04-30"));
 
-  // Pagination / infinite scroll
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  // Infinite scroll
+  const [visibleCount, setVisibleCount] = useState(20); // initial items shown
   const containerRef = useRef(null);
 
-  // Fetch API statuses
+  // Fetch API statuses (all in range)
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        if (page === 1) setLoading(true);
+        setLoading(true);
+        setError(null);
 
         const res = await fetch(
-          `http://localhost:5000/api/status?from=${fromDate.toISOString().split("T")[0]}&to=${toDate.toISOString().split("T")[0]}&page=${page}`
+          `http://localhost:5000/api/status?from=${fromDate
+            .toISOString()
+            .split("T")[0]}&to=${toDate.toISOString().split("T")[0]}`
         );
+
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
         const result = await res.json();
 
         if (Array.isArray(result.data)) {
-          if (page === 1) setApis(result.data);
-          else setApis(prev => [...prev, ...result.data]);
-          setTotalPages(result.pagination?.totalPages || 1);
-          setError(null);
+          setAllApis(result.data);
+          setVisibleApis(result.data.slice(0, 20)); // show first chunk
         } else {
-          if (page === 1) setApis([]);
+          setAllApis([]);
+          setVisibleApis([]);
           setError("API returned unexpected format");
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        if (page === 1) setApis([]);
+        setAllApis([]);
+        setVisibleApis([]);
         setError("Failed to fetch API data");
       } finally {
-        if (page === 1) setLoading(false);
+        setLoading(false);
       }
     };
 
     fetchStatuses();
-  }, [fromDate, toDate, page]);
-
-  // Reset page when dates change
-  useEffect(() => {
-    setPage(1);
   }, [fromDate, toDate]);
 
   // Infinite scroll observer
   useEffect(() => {
-    if (page >= totalPages) return;
+    if (!allApis.length) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) setPage(prev => prev + 1);
+        if (entry.isIntersecting) {
+          setVisibleCount((prev) => {
+            const nextCount = prev + 20;
+            setVisibleApis(allApis.slice(0, nextCount));
+            return nextCount;
+          });
+        }
       },
       { root: containerRef.current, threshold: 1.0 }
     );
@@ -71,7 +77,7 @@ export default function Home() {
     return () => {
       if (lastApi) observer.unobserve(lastApi);
     };
-  }, [apis, page, totalPages]);
+  }, [allApis, visibleApis]);
 
   // Status color
   const getBlockColor = (statusCode) => {
@@ -93,7 +99,7 @@ export default function Home() {
           <div className="status-header">
             <span>System status</span>
 
-            {/* Time range selector using React Date Picker */}
+            {/* Time range selector */}
             <div className="time-range">
               <label>
                 From:{" "}
@@ -118,13 +124,17 @@ export default function Home() {
             <p>Loading APIs...</p>
           ) : error ? (
             <p style={{ color: "red" }}>{error}</p>
-          ) : apis.length === 0 ? (
+          ) : visibleApis.length === 0 ? (
             <p>No APIs found.</p>
           ) : (
-            apis.map((api, index) => {
+            visibleApis.map((api, index) => {
               const statuses = Array.isArray(api.statuses) ? api.statuses : [];
-              const lastStatus = statuses.length ? statuses[statuses.length - 1] : null;
-              const lastOk = lastStatus?.statusCode >= 200 && lastStatus?.statusCode < 300;
+              const lastStatus = statuses.length
+                ? statuses[statuses.length - 1]
+                : null;
+              const lastOk =
+                lastStatus?.statusCode >= 200 &&
+                lastStatus?.statusCode < 300;
 
               return (
                 <div className="status-row" key={api._id || index}>
@@ -135,16 +145,17 @@ export default function Home() {
                     {statuses.map((s, i) => (
                       <span
                         key={i}
-                        className={`status-block ${getBlockColor(s.statusCode)}`}
+                        className={`status-block ${getBlockColor(
+                          s.statusCode
+                        )}`}
                       ></span>
                     ))}
-                    {lastStatus && (
-                      lastOk ? (
+                    {lastStatus &&
+                      (lastOk ? (
                         <span className="status-check">✔</span>
                       ) : (
                         <span className="status-cross">✖</span>
-                      )
-                    )}
+                      ))}
                   </div>
                 </div>
               );
