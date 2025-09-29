@@ -3,40 +3,43 @@ const router = express.Router();
 const ApiStatus = require("../models/apiStatusSchema");
 const { checkAllApis } = require("../controllers/checkers");
 
-// Get all APIs with their statuses (paginated + date filter)
+// Get all APIs with their statuses (paginated + month filter)
 router.get("/status", async (req, res) => {
   try {
-    let { page = 1, limit = 5, from, to } = req.query;
+    let { page = 1, limit = 5, month, year } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
+    month = parseInt(month); // 1-12
+    year = parseInt(year);
 
-    // Build date filter if provided
-    const fromDate = from ? new Date(from) : null;
-    const toDate = to ? new Date(to) : null;
+    if (!month || !year) {
+      return res.status(400).json({ message: "month and year required" });
+    }
+
+    const fromDate = new Date(year, month - 1, 1);
+    const toDate = new Date(year, month, 0, 23, 59, 59, 999); // last day of month
 
     // Fetch all APIs
     const allApis = await ApiStatus.find().sort({ name: 1 });
 
-    // Filter statuses by date (keep ALL matches in range)
+    // Filter statuses by month
     const filteredApis = allApis.map(api => {
       const statuses = api.statuses.filter(s => {
-        if (!s.timestamp) return true; // keep if timestamp missing
+        if (!s.timestamp) return true;
         const t = new Date(s.timestamp);
-        if (fromDate && t < fromDate) return false;
-        if (toDate && t > toDate) return false;
-        return true;
+        return t >= fromDate && t <= toDate;
       });
 
       return {
         _id: api._id,
         name: api.name,
         endpoint: api.endpoint,
-        statuses, // all statuses in range
+        statuses,
         lastChecked: api.lastChecked
       };
     });
 
-    // Apply pagination only to API list, not statuses
+    // Pagination only on APIs list
     const totalPages = Math.max(1, Math.ceil(filteredApis.length / limit));
     const start = (page - 1) * limit;
     const end = start + limit;

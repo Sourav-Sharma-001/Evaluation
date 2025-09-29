@@ -1,33 +1,31 @@
 import React, { useEffect, useState, useRef } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import "./Home.css";
 
 export default function Home() {
-  const [allApis, setAllApis] = useState([]); // full dataset from backend
-  const [visibleApis, setVisibleApis] = useState([]); // progressively shown
+  const [allApis, setAllApis] = useState([]); // full dataset for current month
+  const [visibleApis, setVisibleApis] = useState([]); // for infinite scroll
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Time range (default)
-  const [fromDate, setFromDate] = useState(new Date("2025-01-01"));
-  const [toDate, setToDate] = useState(new Date("2025-04-30"));
+  // Month state (first day of month)
+  const [currentMonth, setCurrentMonth] = useState(new Date("2025-01-01"));
 
   // Infinite scroll
-  const [visibleCount, setVisibleCount] = useState(20); // initial items shown
+  const [visibleCount, setVisibleCount] = useState(20);
   const containerRef = useRef(null);
 
-  // Fetch API statuses (all in range)
+  // Fetch API statuses for the current month
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
         setLoading(true);
         setError(null);
 
+        const month = currentMonth.getMonth() + 1; // 1-12
+        const year = currentMonth.getFullYear();
+
         const res = await fetch(
-          `http://localhost:5000/api/status?from=${fromDate
-            .toISOString()
-            .split("T")[0]}&to=${toDate.toISOString().split("T")[0]}`
+          `http://localhost:5000/api/status?month=${month}&year=${year}`
         );
 
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
@@ -35,7 +33,8 @@ export default function Home() {
 
         if (Array.isArray(result.data)) {
           setAllApis(result.data);
-          setVisibleApis(result.data.slice(0, 20)); // show first chunk
+          setVisibleApis(result.data.slice(0, 20));
+          setVisibleCount(20);
         } else {
           setAllApis([]);
           setVisibleApis([]);
@@ -52,7 +51,7 @@ export default function Home() {
     };
 
     fetchStatuses();
-  }, [fromDate, toDate]);
+  }, [currentMonth]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -88,6 +87,18 @@ export default function Home() {
     return "gray";
   };
 
+  // Month navigation
+  const prevMonth = () => {
+    const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    setCurrentMonth(prev);
+  };
+  const nextMonth = () => {
+    const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    setCurrentMonth(next);
+  };
+
+  const monthLabel = currentMonth.toLocaleString("default", { month: "long", year: "numeric" });
+
   return (
     <div className="home-container">
       <div className="home-heading">
@@ -99,24 +110,11 @@ export default function Home() {
           <div className="status-header">
             <span>System status</span>
 
-            {/* Time range selector */}
-            <div className="time-range">
-              <label>
-                From:{" "}
-                <DatePicker
-                  selected={fromDate}
-                  onChange={(date) => setFromDate(date)}
-                  dateFormat="yyyy-MM-dd"
-                />
-              </label>
-              <label>
-                To:{" "}
-                <DatePicker
-                  selected={toDate}
-                  onChange={(date) => setToDate(date)}
-                  dateFormat="yyyy-MM-dd"
-                />
-              </label>
+            {/* Month selector */}
+            <div className="month-navigation">
+              <button onClick={prevMonth}>◀</button>
+              <span style={{ margin: "0 1rem" }}>{monthLabel}</span>
+              <button onClick={nextMonth}>▶</button>
             </div>
           </div>
 
@@ -125,16 +123,12 @@ export default function Home() {
           ) : error ? (
             <p style={{ color: "red" }}>{error}</p>
           ) : visibleApis.length === 0 ? (
-            <p>No APIs found.</p>
+            <p>No APIs found for this month.</p>
           ) : (
             visibleApis.map((api, index) => {
               const statuses = Array.isArray(api.statuses) ? api.statuses : [];
-              const lastStatus = statuses.length
-                ? statuses[statuses.length - 1]
-                : null;
-              const lastOk =
-                lastStatus?.statusCode >= 200 &&
-                lastStatus?.statusCode < 300;
+              const lastStatus = statuses.length ? statuses[statuses.length - 1] : null;
+              const lastOk = lastStatus?.statusCode >= 200 && lastStatus?.statusCode < 300;
 
               return (
                 <div className="status-row" key={api._id || index}>
@@ -143,19 +137,10 @@ export default function Home() {
                   </span>
                   <div className="status-blocks">
                     {statuses.map((s, i) => (
-                      <span
-                        key={i}
-                        className={`status-block ${getBlockColor(
-                          s.statusCode
-                        )}`}
-                      ></span>
+                      <span key={i} className={`status-block ${getBlockColor(s.statusCode)}`}></span>
                     ))}
                     {lastStatus &&
-                      (lastOk ? (
-                        <span className="status-check">✔</span>
-                      ) : (
-                        <span className="status-cross">✖</span>
-                      ))}
+                      (lastOk ? <span className="status-check">✔</span> : <span className="status-cross">✖</span>)}
                   </div>
                 </div>
               );
