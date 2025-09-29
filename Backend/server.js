@@ -10,6 +10,9 @@ const apiRoutes = require("./routes/apiRoute");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// History limit (use env or default to 1000)
+const HISTORY_LIMIT = parseInt(process.env.STATUS_HISTORY_LIMIT, 10) || 1000;
+
 app.use(cors());
 app.use(express.json());
 
@@ -36,27 +39,36 @@ cron.schedule("* * * * *", async () => {
     const apis = await ApiStatus.find();
 
     for (const api of apis) {
-      const start = Date.now();
+      const startTs = Date.now();
       let statusCode = 0;
+      let responseTimeMs = null;
 
       try {
-        const response = await fetch(api.endpoint);
-        statusCode = response.status;
-      } catch {
+        const response = await fetch(api.endpoint); // Node 18+ has global fetch
+        statusCode = response.status || 0;
+        responseTimeMs = Date.now() - startTs;
+      } catch (err) {
         statusCode = 0; // could not connect
+        responseTimeMs = Date.now() - startTs;
       }
 
-      api.statuses.push({ statusCode, timestamp: new Date() });
+      // Push new structured status into history
+      api.statuses.push({
+        statusCode,
+        timestamp: new Date(),
+        responseTimeMs
+      });
 
-      if (api.statuses.length > 30) {
-        api.statuses = api.statuses.slice(-30);
+      // Keep history bounded by HISTORY_LIMIT (configurable)
+      if (api.statuses.length > HISTORY_LIMIT) {
+        api.statuses = api.statuses.slice(-HISTORY_LIMIT);
       }
 
       api.lastChecked = new Date();
       await api.save();
     }
   } catch (err) {
-    console.error("❌ Cron job error:", err.message);
+    console.error("❌ Cron job error:", err.message || err);
   }
 });
 

@@ -80,6 +80,7 @@ export default function Home() {
 
   // Status color
   const getBlockColor = (statusCode) => {
+    if (statusCode === null) return "gray"; // <-- new: missing day
     if (statusCode >= 200 && statusCode < 300) return "green";
     if (statusCode >= 300 && statusCode < 400) return "orange";
     if (statusCode >= 400 && statusCode < 600) return "red";

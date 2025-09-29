@@ -78,6 +78,7 @@
 .api-display-container {
   max-height: 100%;   /* or any fixed height for the container */
   overflow-y: auto;   /* vertical scroll for many APIs */ 
+  overflow-x: auto; 
 }
 
 .status-blocks {
@@ -85,7 +86,7 @@
   gap: 0.4rem;
   flex-wrap: nowrap;     /* keep blocks in one row */
   align-items: center;
-  overflow-x: auto;      /* horizontal scroll for blocks */
+       /* horizontal scroll for blocks */
 }
 
 .status-block {
