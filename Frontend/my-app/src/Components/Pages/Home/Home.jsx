@@ -90,15 +90,26 @@ export default function Home() {
 
   // Month navigation
   const prevMonth = () => {
-    const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    const prev = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() - 1,
+      1
+    );
     setCurrentMonth(prev);
   };
   const nextMonth = () => {
-    const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    const next = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 1,
+      1
+    );
     setCurrentMonth(next);
   };
 
-  const monthLabel = currentMonth.toLocaleString("default", { month: "long", year: "numeric" });
+  const monthLabel = currentMonth.toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="home-container">
@@ -128,20 +139,33 @@ export default function Home() {
           ) : (
             visibleApis.map((api, index) => {
               const statuses = Array.isArray(api.statuses) ? api.statuses : [];
-              const lastStatus = statuses.length ? statuses[statuses.length - 1] : null;
-              const lastOk = lastStatus?.statusCode >= 200 && lastStatus?.statusCode < 300;
+              const lastStatus = statuses.length
+                ? statuses[statuses.length - 1]
+                : null;
+              const lastOk =
+                lastStatus?.statusCode >= 200 && lastStatus?.statusCode < 300;
 
               return (
                 <div className="status-row" key={api._id || index}>
                   <span className="api-name">
                     {index + 1}. {api.name}
+                    {lastStatus &&
+                      (lastOk ? (
+                        <span className="status-badge-check">✔</span>
+                      ) : (
+                        <span className="status-badge-cross">✖</span>
+                      ))}
                   </span>
+
                   <div className="status-blocks">
                     {statuses.map((s, i) => (
-                      <span key={i} className={`status-block ${getBlockColor(s.statusCode)}`}></span>
+                      <span
+                        key={i}
+                        className={`status-block ${getBlockColor(
+                          s.statusCode
+                        )}`}
+                      ></span>
                     ))}
-                    {lastStatus &&
-                      (lastOk ? <span className="status-check">✔</span> : <span className="status-cross">✖</span>)}
                   </div>
                 </div>
               );

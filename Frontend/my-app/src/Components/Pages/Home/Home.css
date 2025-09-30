@@ -87,7 +87,6 @@
   gap: 0.4rem;
   flex-wrap: nowrap;     /* keep blocks in one row */
   align-items: center;
-       /* horizontal scroll for blocks */
 }
 
 .status-block {
@@ -131,6 +130,20 @@
   z-index: 10;             /* stay above blocks */
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  
+  align-items: center;  
 }
+
+.status-badge-check {
+  margin-left: 0.5em;
+  color: #00ff00;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+.status-badge-cross {
+  margin-left: 0.5em;
+  color: red;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
