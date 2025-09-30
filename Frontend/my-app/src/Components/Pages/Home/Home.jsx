@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useRef, memo } from "react";
+import React, { useEffect, useState, useRef, memo, useCallback } from "react";
 import "./Home.css";
 
-// Memoized StatusRow to prevent unnecessary re-renders
-const StatusRow = memo(({ api, index, getBlockColor }) => {
+// Memoized API Row
+const ApiRow = memo(function ApiRow({ api, index, getBlockColor }) {
   const statuses = Array.isArray(api.statuses) ? api.statuses : [];
   const lastStatus = statuses.length ? statuses[statuses.length - 1] : null;
   const lastOk = lastStatus?.statusCode >= 200 && lastStatus?.statusCode < 300;
 
   return (
-    <div className="status-row" key={api._id || index}>
+    <div className="status-row">
       <span className="api-name">
         {index + 1}. {api.name}
         {lastStatus &&
@@ -40,45 +40,60 @@ export default function Home() {
   const [visibleCount, setVisibleCount] = useState(20);
   const containerRef = useRef(null);
 
-  const fetchStatuses = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const month = currentMonth.getMonth() + 1;
-      const year = currentMonth.getFullYear();
-
-      const res = await fetch(
-        `http://localhost:5000/api/status?month=${month}&year=${year}`
-      );
-
-      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-      const result = await res.json();
-
-      if (Array.isArray(result.data)) {
-        setAllApis(result.data);
-        setVisibleApis(result.data.slice(0, 20));
-        setVisibleCount(20);
-      } else {
-        setAllApis([]);
-        setVisibleApis([]);
-        setError("API returned unexpected format");
-      }
-    } catch (err) {
-      console.error("Fetch error:", err);
-      setAllApis([]);
-      setVisibleApis([]);
-      setError("Failed to fetch API data");
-    } finally {
-      setLoading(false);
-    }
+  const getMonthRange = (date) => {
+    const start = new Date(date.getFullYear(), date.getMonth(), 1);
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    return { start, end };
   };
 
+  const getBlockColor = useCallback((statusCode) => {
+    if (statusCode >= 200 && statusCode < 300) return "green";
+    if (statusCode >= 300 && statusCode < 400) return "orange";
+    if (statusCode >= 400 && statusCode < 600) return "red";
+    if (statusCode >= 100 && statusCode < 200) return "yellow";
+    return "gray";
+  }, []);
+
+  // Fetch statuses
   useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const month = currentMonth.getMonth() + 1;
+        const year = currentMonth.getFullYear();
+
+        const res = await fetch(
+          `http://localhost:5000/api/status?month=${month}&year=${year}`
+        );
+
+        if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+        const result = await res.json();
+
+        if (Array.isArray(result.data)) {
+          setAllApis(result.data);
+          setVisibleApis(result.data.slice(0, 20));
+          setVisibleCount(20);
+        } else {
+          setAllApis([]);
+          setVisibleApis([]);
+          setError("API returned unexpected format");
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setAllApis([]);
+        setVisibleApis([]);
+        setError("Failed to fetch API data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchStatuses();
   }, [currentMonth]);
 
-  // Infinite scroll observer
+  // Infinite scroll
   useEffect(() => {
     if (!allApis.length) return;
 
@@ -103,24 +118,22 @@ export default function Home() {
     };
   }, [allApis, visibleApis]);
 
-  const getBlockColor = (statusCode) => {
-    if (statusCode >= 200 && statusCode < 300) return "green";
-    if (statusCode >= 300 && statusCode < 400) return "orange";
-    if (statusCode >= 400 && statusCode < 600) return "red";
-    if (statusCode >= 100 && statusCode < 200) return "yellow";
-    return "gray";
-  };
-
   const prevMonth = () => {
-    const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-    setCurrentMonth(prev);
-  };
-  const nextMonth = () => {
-    const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-    setCurrentMonth(next);
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+    );
   };
 
-  const monthLabel = currentMonth.toLocaleString("default", { month: "long", year: "numeric" });
+  const nextMonth = () => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+    );
+  };
+
+  const monthLabel = currentMonth.toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="home-container">
@@ -147,7 +160,12 @@ export default function Home() {
             <p>No APIs found for this month.</p>
           ) : (
             visibleApis.map((api, index) => (
-              <StatusRow key={api._id || index} api={api} index={index} getBlockColor={getBlockColor} />
+              <ApiRow
+                key={api._id || index}
+                api={api}
+                index={index}
+                getBlockColor={getBlockColor}
+              />
             ))
           )}
         </div>
