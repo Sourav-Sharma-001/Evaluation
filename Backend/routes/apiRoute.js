@@ -30,11 +30,18 @@ router.get("/status", async (req, res) => {
         return t >= fromDate && t <= toDate;
       });
 
+      // Compute latest status for the selected month
+      let latestStatus = null;
+      if (statuses.length) {
+        latestStatus = statuses[statuses.length - 1];
+      }
+
       return {
         _id: api._id,
         name: api.name,
         endpoint: api.endpoint,
         statuses,
+        lastStatus: latestStatus,  // NEW: for tick/cross
         lastChecked: api.lastChecked,
       };
     });
