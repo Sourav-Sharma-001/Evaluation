@@ -71,10 +71,17 @@
 }
 
 .api-name {
-  display: block;
+  display: inline-flex;      /* inline-flex instead of flex */
+  align-items: center;
   font-size: 0.9rem;
-  margin-bottom: 0.5rem;
+  position: sticky;
+  left: 0;                   /* stick to left */
+  background: inherit;
+  z-index: 5;
+  padding-right: 0.5rem;
+  flex-shrink: 0;            /* don't shrink */
 }
+
 
 .api-display-container {
   max-height: 100%;   /* or any fixed height for the container */
