@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import "./Analysis.css";
 
 export default function Analysis() {
@@ -8,6 +16,7 @@ export default function Analysis() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch stats from backend
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
@@ -18,10 +27,14 @@ export default function Analysis() {
         const data = await res.json();
 
         setStats(data);
+
         if (Array.isArray(data.dailyUptime)) {
           setChartData(
             data.dailyUptime.map((d) => ({
-              date: new Date(d.date).toLocaleDateString("default", { day: "numeric", month: "short" }),
+              date: new Date(d.date).toLocaleDateString("default", {
+                day: "numeric",
+                month: "short",
+              }),
               uptime: d.uptime,
             }))
           );
@@ -48,26 +61,40 @@ export default function Analysis() {
       <div className="cards">
         <div className="card">
           <h3>Uptime (Last 7 Days)</h3>
-          <div className="circle green">{stats.uptime?.toFixed(1)}%</div>
-          <p>Last downtime: {stats.lastDowntime ? new Date(stats.lastDowntime).toLocaleString() : "N/A"}</p>
+          <div className="circle green">
+            {stats.uptime?.toFixed(1) ?? "N/A"}%
+          </div>
+          <p>
+            Last downtime:{" "}
+            {stats.lastDowntime
+              ? new Date(stats.lastDowntime).toLocaleString()
+              : "N/A"}
+          </p>
         </div>
 
         <div className="card">
           <h3>Average Response Time</h3>
-          <div className="circle blue">{stats.avgResponseTime} ms</div>
-          <p>Peak latency: {stats.peakLatency} ms on {stats.peakLatencyTimestamp ? new Date(stats.peakLatencyTimestamp).toLocaleString() : "N/A"}</p>
+          <div className="circle blue">{stats.avgResponseTime ?? "N/A"} ms</div>
+          <p>
+            Peak latency: {stats.peakLatency ?? "N/A"} ms on{" "}
+            {stats.peakLatencyTimestamp
+              ? new Date(stats.peakLatencyTimestamp).toLocaleString()
+              : "N/A"}
+          </p>
         </div>
 
         <div className="card">
           <h3>Request Volume</h3>
-          <div className="circle yellow">{stats.requestVolume}</div>
-          <p>Avg/day: {stats.avgPerDay}</p>
+          <div className="circle yellow">{stats.requestVolume ?? "N/A"}</div>
+          <p>Avg/day: {stats.avgPerDay ?? "N/A"}</p>
         </div>
 
         <div className="card">
           <h3>Error Rate</h3>
-          <div className="circle red">{stats.errorRate?.toFixed(1)}%</div>
-          <p>Most common error: {stats.mostCommonError || "N/A"}</p>
+          <div className="circle red">
+            {stats.errorRate?.toFixed(1) ?? "0"}%
+          </div>
+          <p>Most common error: {stats.mostCommonError ?? "N/A"}</p>
         </div>
       </div>
 
@@ -75,12 +102,20 @@ export default function Analysis() {
         <h3>Uptime Overview</h3>
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <LineChart
+              data={chartData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis domain={[0, 100]} tickFormatter={(tick) => `${tick}%`} />
               <Tooltip formatter={(value) => `${value}%`} />
-              <Line type="monotone" dataKey="uptime" stroke="#00b300" strokeWidth={2} />
+              <Line
+                type="monotone"
+                dataKey="uptime"
+                stroke="#00b300"
+                strokeWidth={2}
+              />
             </LineChart>
           </ResponsiveContainer>
         ) : (
