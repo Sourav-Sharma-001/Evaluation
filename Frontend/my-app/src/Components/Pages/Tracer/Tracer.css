@@ -1,0 +1,73 @@
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #0a0a2a;
+  color: #fff;
+  font-size: 1rem; /* base size = 16px */
+}
+
+.tracer-container {
+  padding: 1.25rem; /* 20px */
+}
+
+.tracer-container h2 {
+  font-size: 1.375rem; /* 22px */
+  margin-bottom: 1.25rem; /* 20px */
+}
+
+.day-section {
+  margin-bottom: 1.875rem; /* 30px */
+}
+
+.day-section h3 {
+  font-size: 1.125rem; /* 18px */
+  margin-bottom: 0.9375rem; /* 15px */
+}
+
+.log-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem; /* 8px */
+  padding: 0.9375rem; /* 15px */
+  margin-bottom: 0.9375rem; /* 15px */
+  color: #ddd;
+}
+
+.log-id {
+  font-size: 0.875rem; /* 14px */
+  margin-bottom: 0.5rem; /* 8px */
+  color: #aaa;
+}
+
+.method {
+  color: #00ff88;
+  font-weight: bold;
+}
+
+.endpoint {
+  color: #66ccff;
+}
+
+.log-steps p {
+  margin: 0.1875rem 0; /* 3px top/bottom */
+  font-size: 0.875rem; /* 14px */
+}
+
+.log-url {
+  margin-top: 0.5rem; /* 8px */
+}
+
+.log-url a {
+  color: #00ff88;
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.log-url a:hover {
+  text-decoration: underline;
+}
+
+.log-time {
+  margin-top: 0.3125rem; /* 5px */
+  font-size: 0.8125rem; /* 13px */
+  color: #00ff88;
+}
