@@ -5,6 +5,7 @@ const cron = require("node-cron");
 require("dotenv").config();
 
 const ApiStatus = require("./models/apiStatusSchema");
+const TracerLog = require("./models/tracerSchema"); // ✅ import tracer model
 const apiRoutes = require("./routes/apiRoute");
 
 const app = express();
@@ -15,6 +16,34 @@ const HISTORY_LIMIT = parseInt(process.env.STATUS_HISTORY_LIMIT, 10) || 1000;
 
 app.use(cors());
 app.use(express.json());
+
+// ✅ Tracer Middleware — logs every /api request
+app.use(async (req, res, next) => {
+  if (!req.originalUrl.startsWith("/api")) return next();
+
+  const start = Date.now();
+
+  res.on("finish", async () => {
+    try {
+      const timeTaken = Date.now() - start;
+      const log = new TracerLog({
+        method: req.method,
+        endpoint: req.originalUrl,
+        steps: [
+          "Request received",
+          `Responded with status ${res.statusCode}`
+        ],
+        url: req.originalUrl,
+        time: `${timeTaken}ms`,
+      });
+      await log.save();
+    } catch (err) {
+      console.error("❌ Error saving tracer log:", err.message);
+    }
+  });
+
+  next();
+});
 
 app.get("/", (req, res) => {
   res.send("Server is running...");
@@ -48,7 +77,7 @@ cron.schedule("* * * * *", async () => {
         statusCode = response.status || 0;
         responseTimeMs = Date.now() - startTs;
       } catch (err) {
-        statusCode = 0; // could not connect
+        statusCode = 0;
         responseTimeMs = Date.now() - startTs;
       }
 
@@ -59,7 +88,7 @@ cron.schedule("* * * * *", async () => {
         responseTimeMs
       });
 
-      // Keep history bounded by HISTORY_LIMIT (configurable)
+      // Keep history bounded
       if (api.statuses.length > HISTORY_LIMIT) {
         api.statuses = api.statuses.slice(-HISTORY_LIMIT);
       }

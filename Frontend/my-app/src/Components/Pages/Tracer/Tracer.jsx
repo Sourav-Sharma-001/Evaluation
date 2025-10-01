@@ -23,7 +23,9 @@ export default function Tracer() {
   };
 
   useEffect(() => {
-    fetchLogs();
+    fetchLogs(); // initial load
+    const interval = setInterval(fetchLogs, 10000); // 🔄 auto-refresh every 10s
+    return () => clearInterval(interval); // cleanup on unmount
   }, []);
 
   const renderLogs = (day, items) => (
