@@ -5,7 +5,8 @@ const cron = require("node-cron");
 require("dotenv").config();
 
 const ApiStatus = require("./models/apiStatusSchema");
-const TracerLog = require("./models/tracerSchema"); // new
+const TracerLog = require("./models/tracerSchema");
+const TracerKey = require("./models/tracerKeySchema"); // new
 const apiRoutes = require("./routes/apiRoute");
 
 const app = express();
@@ -31,6 +32,33 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Use routes
 app.use("/api", apiRoutes);
+
+const tracerRoute = require("./routes/tracerRoute");
+app.use("/private-tracer", tracerRoute);
+
+// Secure Tracer POST endpoint
+app.post("/tracer/log", async (req, res) => {
+  try {
+    const apiKey = req.header("x-api-key");
+    if (!apiKey) return res.status(401).json({ message: "API key missing" });
+
+    const keyDoc = await TracerKey.findOne({ key: apiKey });
+    if (!keyDoc) return res.status(401).json({ message: "Invalid API key" });
+
+    const { apiName, method, statusCode, responseTimeMs, steps, url, endpoint, time } = req.body;
+    if (!apiName || !statusCode || !responseTimeMs || !Array.isArray(steps) || !url) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const tracerLog = new TracerLog({ apiName, method, statusCode, responseTimeMs, steps, url, endpoint, time });
+    await tracerLog.save();
+
+    res.status(201).json({ message: "Log saved successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // Cron job: check APIs every minute
 cron.schedule("* * * * *", async () => {
@@ -74,11 +102,11 @@ cron.schedule("* * * * *", async () => {
       api.lastChecked = new Date();
       await api.save();
 
-      // Create TracerLog
+      // Create TracerLog (cron-generated)
       const tracerLog = new TracerLog({
         apiName: api.name,
         endpoint: api.endpoint,
-        method: "GET", // or dynamically assign if needed
+        method: "GET",
         url: api.endpoint,
         time: responseTimeMs,
         steps
