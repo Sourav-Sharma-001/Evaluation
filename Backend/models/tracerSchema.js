@@ -5,14 +5,14 @@ const stepSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-const tracerLogSchema = new mongoose.Schema({
-  apiName: { type: String, required: true },
+const tracerSchema = new mongoose.Schema({
+  id: { type: String, required: true },
   method: { type: String, required: true },
   endpoint: { type: String, required: true },
+  steps: { type: [stepSchema], default: [] }, // array of objects
   url: { type: String, required: true },
-  responseTimeMs: { type: Number, required: true },
-  steps: { type: [stepSchema], default: [] },
+  time: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model("TracerLog", tracerLogSchema);
+module.exports = mongoose.model("TracerLog", tracerSchema);

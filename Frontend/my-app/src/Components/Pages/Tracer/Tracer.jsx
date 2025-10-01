@@ -23,9 +23,7 @@ export default function Tracer() {
   };
 
   useEffect(() => {
-    fetchLogs(); // initial load
-    const interval = setInterval(fetchLogs, 10000); // 🔄 auto-refresh every 10s
-    return () => clearInterval(interval); // cleanup on unmount
+    fetchLogs();
   }, []);
 
   const renderLogs = (day, items) => (
@@ -42,7 +40,12 @@ export default function Tracer() {
             </p>
             <div className="log-steps">
               {log.steps.map((step, i) => (
-                <p key={i}>↪ {step}</p>
+                <p key={i}>
+                  ↪ {step.message}{" "}
+                  <span style={{ color: "#666", fontSize: "0.75rem" }}>
+                    ({new Date(step.timestamp).toLocaleTimeString()})
+                  </span>
+                </p>
               ))}
             </div>
             <p className="log-url">
