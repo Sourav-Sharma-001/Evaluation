@@ -11,24 +11,34 @@ import {
 import "./Analysis.css";
 
 export default function Analysis() {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({
+    uptime: 0,
+    avgResponseTime: 0,
+    peakLatency: 0,
+    peakLatencyTimestamp: null,
+    requestVolume: 0,
+    avgPerDay: 0,
+    errorRate: 0,
+    mostCommonError: "N/A",
+    lastDowntime: null,
+    dailyUptime: [],
+  });
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [month, setMonth] = useState(new Date().getMonth() + 1); // 1-12
+
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
 
   const fetchStats = async (m, y) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/stats?month=${m}&year=${y}`
-      );
+      const res = await fetch(`http://localhost:5000/api/stats?month=${m}&year=${y}`);
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const data = await res.json();
 
-      setStats(data);
+      setStats(data || stats);
 
       if (Array.isArray(data.dailyUptime)) {
         setChartData(
@@ -37,9 +47,11 @@ export default function Analysis() {
               day: "numeric",
               month: "short",
             }),
-            uptime: d.uptime,
+            uptime: d.uptime || 0,
           }))
         );
+      } else {
+        setChartData([]);
       }
     } catch (err) {
       console.error(err);
@@ -56,9 +68,8 @@ export default function Analysis() {
   const handleMonthChange = (e) => setMonth(parseInt(e.target.value));
   const handleYearChange = (e) => setYear(parseInt(e.target.value));
 
-  if (loading) return <p style={{color: "white"}}>Loading stats...</p>;
+  if (loading) return <p style={{ color: "white" }}>Loading stats...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
-  if (!stats) return <p>No stats available</p>;
 
   return (
     <div className="analysis-container">
@@ -90,7 +101,7 @@ export default function Analysis() {
       <div className="cards">
         <div className="card">
           <h3>Uptime (Month)</h3>
-          <div className="circle green">{stats.uptime?.toFixed(1)}%</div>
+          <div className="circle green">{stats.uptime?.toFixed(1) || 0}%</div>
           <p>
             Last downtime:{" "}
             {stats.lastDowntime
@@ -101,9 +112,9 @@ export default function Analysis() {
 
         <div className="card">
           <h3>Average Response Time</h3>
-          <div className="circle blue">{stats.avgResponseTime} ms</div>
+          <div className="circle blue">{stats.avgResponseTime || 0} ms</div>
           <p>
-            Peak latency: {stats.peakLatency} ms on{" "}
+            Peak latency: {stats.peakLatency || 0} ms on{" "}
             {stats.peakLatencyTimestamp
               ? new Date(stats.peakLatencyTimestamp).toLocaleString()
               : "N/A"}
@@ -112,13 +123,13 @@ export default function Analysis() {
 
         <div className="card">
           <h3>Request Volume</h3>
-          <div className="circle yellow">{stats.requestVolume}</div>
-          <p>Avg/day: {stats.avgPerDay}</p>
+          <div className="circle yellow">{stats.requestVolume || 0}</div>
+          <p>Avg/day: {stats.avgPerDay || 0}</p>
         </div>
 
         <div className="card">
           <h3>Error Rate</h3>
-          <div className="circle red">{stats.errorRate?.toFixed(1)}%</div>
+          <div className="circle red">{stats.errorRate?.toFixed(1) || 0}%</div>
           <p>Most common error: {stats.mostCommonError || "N/A"}</p>
         </div>
       </div>

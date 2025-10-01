@@ -1,7 +1,7 @@
 .analysis-container {
   padding-left: 2rem;
   font-family: Arial, sans-serif;
-  color: #eaeaea; /* keep text light on dark backgrounds */
+  color: #eaeaea;
 }
 
 h1 {
@@ -53,7 +53,7 @@ h1 {
   border-radius: 0.75rem;
   border: 1px solid #333;
   text-align: center;
-  background: transparent; /* removed filthy white */
+  background: transparent;
 }
 
 .card h3 {
@@ -96,7 +96,7 @@ h1 {
   padding: 1.5rem;
   border-radius: 0.75rem;
   border: 1px solid #333;
-  background: transparent; /* keep aligned with dark design */
+  background: transparent;
 }
 
 .sales-overview h3 {
