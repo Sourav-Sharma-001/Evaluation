@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const ApiStatus = require("../models/apiStatusSchema");
-const TracerLog = require("../models/tracerSchema"); // New tracer schema
+const TracerLog = require("../models/tracerSchema"); // new
 
 // GET /status?month=&year=&page=&limit=
 router.get("/status", async (req, res) => {
@@ -75,17 +75,10 @@ router.get("/stats", async (req, res) => {
     let responseTimes = [];
     let errorCounts = {};
 
-    // Daily uptime for chart
-    const dailyUptime = Array.from({ length: totalDays }, (_, i) => ({
-      date: new Date(year, month - 1, i + 1),
-      success: 0,
-      total: 0,
-    }));
+    const dailyUptime = Array.from({ length: totalDays }, (_, i) => ({ date: new Date(year, month - 1, i + 1), success: 0, total: 0 }));
 
     allApis.forEach((api) => {
-      const monthStatuses = api.statuses.filter(
-        (s) => s.timestamp && new Date(s.timestamp) >= fromDate && new Date(s.timestamp) <= toDate
-      );
+      const monthStatuses = api.statuses.filter((s) => s.timestamp && new Date(s.timestamp) >= fromDate && new Date(s.timestamp) <= toDate);
 
       monthStatuses.forEach((s) => {
         totalRequests++;
@@ -106,23 +99,12 @@ router.get("/stats", async (req, res) => {
     });
 
     const uptime = totalRequests ? (totalSuccess / totalRequests) * 100 : 100;
-    const avgResponseTime = responseTimes.length
-      ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
-      : 0;
+    const avgResponseTime = responseTimes.length ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) : 0;
     const peakLatency = responseTimes.length ? Math.max(...responseTimes) : 0;
-    const peakLatencyTimestamp =
-      allApis
-        .flatMap((a) => a.statuses)
-        .find((s) => s.responseTimeMs === peakLatency)?.timestamp || null;
+    const peakLatencyTimestamp = allApis.flatMap(a => a.statuses).find(s => s.responseTimeMs === peakLatency)?.timestamp || null;
     const errorRate = totalRequests ? (totalErrors / totalRequests) * 100 : 0;
-    const mostCommonError = Object.keys(errorCounts).length
-      ? Object.entries(errorCounts).sort((a, b) => b[1] - a[1])[0][0]
-      : null;
-    const lastDowntime =
-      allApis
-        .flatMap((a) => a.statuses)
-        .filter((s) => s.statusCode >= 400)
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]?.timestamp || null;
+    const mostCommonError = Object.keys(errorCounts).length ? Object.entries(errorCounts).sort((a, b) => b[1] - a[1])[0][0] : null;
+    const lastDowntime = allApis.flatMap(a => a.statuses).filter(s => s.statusCode >= 400).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]?.timestamp || null;
 
     const chartData = dailyUptime.map((d) => ({
       date: d.date,
@@ -147,35 +129,30 @@ router.get("/stats", async (req, res) => {
   }
 });
 
-// NEW: GET /tracer/logs?day=today|yesterday
+// NEW: GET /tracer/logs
 router.get("/tracer/logs", async (req, res) => {
   try {
-    const { day } = req.query;
-    if (!day || !["today", "yesterday"].includes(day)) {
-      return res.status(400).json({ message: "Invalid day parameter" });
-    }
+    const logs = await TracerLog.find().sort({ createdAt: -1 }).lean();
 
+    const today = [];
+    const yesterday = [];
     const now = new Date();
-    let fromDate, toDate;
-    if (day === "today") {
-      fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-      toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    } else {
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      fromDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
-      toDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
-    }
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(todayStart.getDate() - 1);
 
-    const logs = await TracerLog.find({ timestamp: { $gte: fromDate, $lte: toDate } })
-      .sort({ timestamp: -1 })
-      .limit(500);
+    logs.forEach(log => {
+      const logDate = new Date(log.createdAt);
+      if (logDate >= todayStart) today.push(log);
+      else if (logDate >= yesterdayStart && logDate < todayStart) yesterday.push(log);
+    });
 
-    res.json({ logs });
+    res.json({ today, yesterday });
   } catch (err) {
     console.error("Error fetching tracer logs:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 module.exports = router;

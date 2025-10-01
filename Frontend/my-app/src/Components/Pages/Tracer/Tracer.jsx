@@ -11,7 +11,7 @@ export default function Tracer() {
       const res = await fetch(`http://localhost:5000/api/tracer/logs?day=${day}`);
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const data = await res.json();
-      return data.logs || [];
+      return data[day] || [];
     } catch (err) {
       console.error(err);
       setError(`Failed to fetch ${day} logs`);
@@ -45,7 +45,7 @@ export default function Tracer() {
             </p>
             <div className="log-steps">
               {log.steps && log.steps.length > 0 ? (
-                log.steps.map((step, i) => <p key={i}>↪ {step}</p>)
+                log.steps.map((step, i) => <p key={i}>↪ {step.message}</p>)
               ) : (
                 <p>↪ No steps recorded</p>
               )}
@@ -53,7 +53,9 @@ export default function Tracer() {
             <p className="log-url">
               ⤷ <a href={log.url}>{log.url || "N/A"}</a>
             </p>
-            <p className="log-time">({log.responseTimeMs ? `${log.responseTimeMs}ms` : "N/A"})</p>
+            <p className="log-time">
+              ({log.responseTimeMs ? `${log.responseTimeMs}ms` : "N/A"})
+            </p>
           </div>
         ))
       )}
