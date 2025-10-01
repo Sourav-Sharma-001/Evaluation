@@ -74,15 +74,31 @@ router.get("/stats", async (req, res) => {
     let responseTimes = [];
     let errorCounts = {};
 
+    // Track latency with timestamps
+    let peakLatency = 0;
+    let peakLatencyTimestamp = null;
+
     // Daily uptime for chart
-    const dailyUptime = Array.from({ length: totalDays }, (_, i) => ({ date: new Date(year, month - 1, i + 1), success: 0, total: 0 }));
+    const dailyUptime = Array.from({ length: totalDays }, (_, i) => ({
+      date: new Date(year, month - 1, i + 1),
+      success: 0,
+      total: 0,
+    }));
 
     allApis.forEach((api) => {
-      const monthStatuses = api.statuses.filter((s) => s.timestamp && new Date(s.timestamp) >= fromDate && new Date(s.timestamp) <= toDate);
+      const monthStatuses = api.statuses.filter(
+        (s) => s.timestamp && new Date(s.timestamp) >= fromDate && new Date(s.timestamp) <= toDate
+      );
 
       monthStatuses.forEach((s) => {
         totalRequests++;
-        responseTimes.push(s.responseTimeMs || 0);
+        const rt = s.responseTimeMs || 0;
+        responseTimes.push(rt);
+
+        if (rt > peakLatency) {
+          peakLatency = rt;
+          peakLatencyTimestamp = s.timestamp || null;
+        }
 
         const statusCode = s.statusCode;
         if (statusCode >= 200 && statusCode < 300) totalSuccess++;
@@ -99,12 +115,19 @@ router.get("/stats", async (req, res) => {
     });
 
     const uptime = totalRequests ? (totalSuccess / totalRequests) * 100 : 100;
-    const avgResponseTime = responseTimes.length ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) : 0;
-    const peakLatency = responseTimes.length ? Math.max(...responseTimes) : 0;
-    const peakLatencyTimestamp = allApis.flatMap(a => a.statuses).find(s => s.responseTimeMs === peakLatency)?.timestamp || null;
+    const avgResponseTime = responseTimes.length
+      ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+      : 0;
+
     const errorRate = totalRequests ? (totalErrors / totalRequests) * 100 : 0;
-    const mostCommonError = Object.keys(errorCounts).length ? Object.entries(errorCounts).sort((a, b) => b[1] - a[1])[0][0] : null;
-    const lastDowntime = allApis.flatMap(a => a.statuses).filter(s => s.statusCode >= 400).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]?.timestamp || null;
+    const mostCommonError = Object.keys(errorCounts).length
+      ? Object.entries(errorCounts).sort((a, b) => b[1] - a[1])[0][0]
+      : null;
+    const lastDowntime =
+      allApis
+        .flatMap((a) => a.statuses)
+        .filter((s) => s.statusCode >= 400)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]?.timestamp || null;
 
     const chartData = dailyUptime.map((d) => ({
       date: d.date,
