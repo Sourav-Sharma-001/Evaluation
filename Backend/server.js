@@ -8,6 +8,8 @@ const ApiStatus = require("./models/apiStatusSchema");
 const TracerLog = require("./models/tracerSchema");
 const TracerKey = require("./models/tracerKeySchema"); // new
 const apiRoutes = require("./routes/apiRoute");
+const tracerMiddleware = require("./middleware/tracerMiddleware");
+const configRoute = require("./routes/configRoute");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,9 +20,8 @@ const HISTORY_LIMIT = parseInt(process.env.STATUS_HISTORY_LIMIT, 10) || 1000;
 app.use(cors());
 app.use(express.json());
 
-const tracerMiddleware = require("./middleware/tracerMiddleware");
 app.use(tracerMiddleware);
-
+app.use("/api", configRoute);
 
 app.get("/", (req, res) => {
   res.send("Server is running...");
