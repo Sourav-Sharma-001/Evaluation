@@ -1,101 +1,107 @@
 .analysis-container {
-  width: 90%;
-  height: 95%;
-  margin-top: 1rem;
-  font-size: 1rem;
-  place-self: center;
-  overflow-y: hidden;
+  padding-left: 2rem;
+  font-family: Arial, sans-serif;
+  color: #eaeaea; /* keep text light on dark backgrounds */
 }
 
-.analysis-container h1 {
-  color: white;
-  margin-bottom: 1.2rem;
-  font-size: 1.5rem;
+h1 {
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
 }
 
-/* Cards */
+.time-selector {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  align-items: center;
+}
+
+.time-selector label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #ccc;
+}
+
+.time-selector select,
+.time-selector input {
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #666;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  background-color: #222;
+  color: #eee;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.time-selector select:focus,
+.time-selector input:focus {
+  border-color: #007bff;
+  background-color: #2a2a2a;
+}
+
 .cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .card {
-  background: #1e293b;
-  padding: 1.2rem;
-  border-radius: 0.6rem;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #333;
   text-align: center;
+  background: transparent; /* removed filthy white */
 }
 
 .card h3 {
-  margin-bottom: 1rem;
   font-size: 1rem;
-  color: #a1a1aa;
+  margin-bottom: 0.6rem;
+  color: #ddd;
 }
 
-.card p {
-  font-size: 0.85rem;
-  color: #9ca3af;
-}
-
-/* Circle Values */
 .circle {
-  width: 6.2rem;
-  height: 6.2rem;
+  width: 5rem;
+  height: 5rem;
   margin: 0 auto 0.6rem;
   border-radius: 50%;
   display: flex;
-  justify-content: center;
   align-items: center;
-  font-size: 1.1rem;
+  justify-content: center;
   font-weight: bold;
+  font-size: 1.1rem;
+  color: #fff;
 }
 
 .circle.green {
-  border: 0.3rem solid #22c55e;
-  color: #22c55e;
+  background-color: #28a745;
 }
 
 .circle.blue {
-  border: 0.3rem solid #3b82f6;
-  color: #3b82f6;
+  background-color: #007bff;
 }
 
 .circle.yellow {
-  border: 0.3rem solid #eab308;
-  color: #eab308;
+  background-color: #ffc107;
+  color: #222;
 }
 
 .circle.red {
-  border: 0.3rem solid #ef4444;
-  color: #ef4444;
+  background-color: #dc3545;
 }
 
-/* Sales Overview */
 .sales-overview {
-  margin-top: 2rem;
-  background: #1e293b;
-  padding: 1.2rem;
-  border-radius: 0.6rem;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #333;
+  background: transparent; /* keep aligned with dark design */
 }
 
 .sales-overview h3 {
   margin-bottom: 1rem;
-  font-size: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #eee;
 }
-
-.sales-overview span {
-  color: #22c55e;
-  font-size: 0.85rem;
-}
-
-.graph-placeholder {
-  background: rgba(59, 130, 246, 0.1);
-  height: 15rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-}
-

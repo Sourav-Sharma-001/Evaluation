@@ -56,7 +56,7 @@ export default function Analysis() {
   const handleMonthChange = (e) => setMonth(parseInt(e.target.value));
   const handleYearChange = (e) => setYear(parseInt(e.target.value));
 
-  if (loading) return <p>Loading stats...</p>;
+  if (loading) return <p style={{color: "white"}}>Loading stats...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
   if (!stats) return <p>No stats available</p>;
 
