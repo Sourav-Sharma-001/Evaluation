@@ -15,40 +15,46 @@ export default function Analysis() {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [month, setMonth] = useState(new Date().getMonth() + 1); // 1-12
+  const [year, setYear] = useState(new Date().getFullYear());
 
-  // Fetch stats from backend
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("http://localhost:5000/api/stats");
-        if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-        const data = await res.json();
+  const fetchStats = async (m, y) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/stats?month=${m}&year=${y}`
+      );
+      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+      const data = await res.json();
 
-        setStats(data);
+      setStats(data);
 
-        if (Array.isArray(data.dailyUptime)) {
-          setChartData(
-            data.dailyUptime.map((d) => ({
-              date: new Date(d.date).toLocaleDateString("default", {
-                day: "numeric",
-                month: "short",
-              }),
-              uptime: d.uptime,
-            }))
-          );
-        }
-      } catch (err) {
-        console.error(err);
-        setError("Failed to fetch stats");
-      } finally {
-        setLoading(false);
+      if (Array.isArray(data.dailyUptime)) {
+        setChartData(
+          data.dailyUptime.map((d) => ({
+            date: new Date(d.date).toLocaleDateString("default", {
+              day: "numeric",
+              month: "short",
+            }),
+            uptime: d.uptime,
+          }))
+        );
       }
-    };
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch stats");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchStats();
-  }, []);
+  useEffect(() => {
+    fetchStats(month, year);
+  }, [month, year]);
+
+  const handleMonthChange = (e) => setMonth(parseInt(e.target.value));
+  const handleYearChange = (e) => setYear(parseInt(e.target.value));
 
   if (loading) return <p>Loading stats...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
@@ -58,12 +64,33 @@ export default function Analysis() {
     <div className="analysis-container">
       <h1>Analysis</h1>
 
+      <div className="time-selector">
+        <label>
+          Month:
+          <select value={month} onChange={handleMonthChange}>
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {new Date(0, i).toLocaleString("default", { month: "long" })}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Year:
+          <input
+            type="number"
+            value={year}
+            onChange={handleYearChange}
+            min="2000"
+            max={new Date().getFullYear()}
+          />
+        </label>
+      </div>
+
       <div className="cards">
         <div className="card">
-          <h3>Uptime (Last 7 Days)</h3>
-          <div className="circle green">
-            {stats.uptime?.toFixed(1) ?? "N/A"}%
-          </div>
+          <h3>Uptime (Month)</h3>
+          <div className="circle green">{stats.uptime?.toFixed(1)}%</div>
           <p>
             Last downtime:{" "}
             {stats.lastDowntime
@@ -74,9 +101,9 @@ export default function Analysis() {
 
         <div className="card">
           <h3>Average Response Time</h3>
-          <div className="circle blue">{stats.avgResponseTime ?? "N/A"} ms</div>
+          <div className="circle blue">{stats.avgResponseTime} ms</div>
           <p>
-            Peak latency: {stats.peakLatency ?? "N/A"} ms on{" "}
+            Peak latency: {stats.peakLatency} ms on{" "}
             {stats.peakLatencyTimestamp
               ? new Date(stats.peakLatencyTimestamp).toLocaleString()
               : "N/A"}
@@ -85,16 +112,14 @@ export default function Analysis() {
 
         <div className="card">
           <h3>Request Volume</h3>
-          <div className="circle yellow">{stats.requestVolume ?? "N/A"}</div>
-          <p>Avg/day: {stats.avgPerDay ?? "N/A"}</p>
+          <div className="circle yellow">{stats.requestVolume}</div>
+          <p>Avg/day: {stats.avgPerDay}</p>
         </div>
 
         <div className="card">
           <h3>Error Rate</h3>
-          <div className="circle red">
-            {stats.errorRate?.toFixed(1) ?? "0"}%
-          </div>
-          <p>Most common error: {stats.mostCommonError ?? "N/A"}</p>
+          <div className="circle red">{stats.errorRate?.toFixed(1)}%</div>
+          <p>Most common error: {stats.mostCommonError || "N/A"}</p>
         </div>
       </div>
 
@@ -109,7 +134,7 @@ export default function Analysis() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis domain={[0, 100]} tickFormatter={(tick) => `${tick}%`} />
-              <Tooltip formatter={(value) => `${value}%`} />
+              <Tooltip formatter={(value) => `${value.toFixed(1)}%`} />
               <Line
                 type="monotone"
                 dataKey="uptime"

@@ -8,7 +8,7 @@ router.get("/status", async (req, res) => {
     let { page = 1, limit = 20, month, year } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
-    month = parseInt(month); // 1–12
+    month = parseInt(month);
     year = parseInt(year);
 
     if (!month || !year) {
@@ -20,8 +20,8 @@ router.get("/status", async (req, res) => {
 
     const allApis = await ApiStatus.find().sort({ name: 1 });
 
-    const filteredApis = allApis.map(api => {
-      const statuses = api.statuses.filter(s => {
+    const filteredApis = allApis.map((api) => {
+      const statuses = api.statuses.filter((s) => {
         if (!s.timestamp) return false;
         const t = new Date(s.timestamp);
         return t >= fromDate && t <= toDate;
@@ -32,7 +32,7 @@ router.get("/status", async (req, res) => {
         name: api.name,
         endpoint: api.endpoint,
         statuses,
-        lastChecked: api.lastChecked
+        lastChecked: api.lastChecked,
       };
     });
 
@@ -43,7 +43,7 @@ router.get("/status", async (req, res) => {
 
     res.json({
       data: paginatedData,
-      pagination: { currentPage: page, totalPages }
+      pagination: { currentPage: page, totalPages },
     });
   } catch (err) {
     console.error("Error fetching statuses:", err);
@@ -51,81 +51,78 @@ router.get("/status", async (req, res) => {
   }
 });
 
-// NEW: GET /stats
+// GET /stats?month=&year=
 router.get("/stats", async (req, res) => {
   try {
+    let { month, year } = req.query;
+    month = parseInt(month);
+    year = parseInt(year);
+
+    if (!month || !year) {
+      return res.status(400).json({ message: "month and year required" });
+    }
+
+    const fromDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    const toDate = new Date(year, month, 0, 23, 59, 59, 999);
+    const totalDays = toDate.getDate();
+
     const allApis = await ApiStatus.find();
 
     let totalRequests = 0;
-    let totalResponseTime = 0;
+    let totalSuccess = 0;
+    let totalErrors = 0;
+    let responseTimes = [];
     let errorCounts = {};
-    let dailyUptimeMap = {};
 
-    let lastDowntime = null;
-    let peakLatency = 0;
-    let peakLatencyTimestamp = null;
+    // Daily uptime for chart
+    const dailyUptime = Array.from({ length: totalDays }, (_, i) => ({ date: new Date(year, month - 1, i + 1), success: 0, total: 0 }));
 
-    for (const api of allApis) {
-      for (const s of api.statuses) {
+    allApis.forEach((api) => {
+      const monthStatuses = api.statuses.filter((s) => s.timestamp && new Date(s.timestamp) >= fromDate && new Date(s.timestamp) <= toDate);
+
+      monthStatuses.forEach((s) => {
         totalRequests++;
-        totalResponseTime += s.responseTimeMs || 0;
+        responseTimes.push(s.responseTimeMs || 0);
 
-        // Track errors
-        if (s.statusCode >= 400) {
-          errorCounts[s.statusCode] = (errorCounts[s.statusCode] || 0) + 1;
-          if (!lastDowntime || new Date(s.timestamp) > new Date(lastDowntime)) {
-            lastDowntime = s.timestamp;
-          }
+        const statusCode = s.statusCode;
+        if (statusCode >= 200 && statusCode < 300) totalSuccess++;
+        else if (statusCode >= 400) totalErrors++;
+
+        if (statusCode >= 400) {
+          errorCounts[statusCode] = (errorCounts[statusCode] || 0) + 1;
         }
 
-        // Peak latency
-        if (s.responseTimeMs && s.responseTimeMs > peakLatency) {
-          peakLatency = s.responseTimeMs;
-          peakLatencyTimestamp = s.timestamp;
-        }
+        const dayIndex = new Date(s.timestamp).getDate() - 1;
+        dailyUptime[dayIndex].total++;
+        if (statusCode >= 200 && statusCode < 300) dailyUptime[dayIndex].success++;
+      });
+    });
 
-        // Daily uptime calculation
-        const dateKey = new Date(s.timestamp).toISOString().split("T")[0]; // YYYY-MM-DD
-        if (!dailyUptimeMap[dateKey]) dailyUptimeMap[dateKey] = { total: 0, success: 0 };
-        dailyUptimeMap[dateKey].total++;
-        if (s.statusCode >= 200 && s.statusCode < 400) dailyUptimeMap[dateKey].success++;
-      }
-    }
+    const uptime = totalRequests ? (totalSuccess / totalRequests) * 100 : 100;
+    const avgResponseTime = responseTimes.length ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) : 0;
+    const peakLatency = responseTimes.length ? Math.max(...responseTimes) : 0;
+    const peakLatencyTimestamp = allApis.flatMap(a => a.statuses).find(s => s.responseTimeMs === peakLatency)?.timestamp || null;
+    const errorRate = totalRequests ? (totalErrors / totalRequests) * 100 : 0;
+    const mostCommonError = Object.keys(errorCounts).length ? Object.entries(errorCounts).sort((a, b) => b[1] - a[1])[0][0] : null;
+    const lastDowntime = allApis.flatMap(a => a.statuses).filter(s => s.statusCode >= 400).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]?.timestamp || null;
 
-    // Daily uptime array
-    const dailyUptime = Object.keys(dailyUptimeMap)
-      .sort()
-      .map(date => ({
-        date,
-        uptime: ((dailyUptimeMap[date].success / dailyUptimeMap[date].total) * 100).toFixed(1)
-      }));
+    const chartData = dailyUptime.map((d) => ({
+      date: d.date,
+      uptime: d.total ? (d.success / d.total) * 100 : 100,
+    }));
 
-    // Most common error
-    let mostCommonError = null;
-    let maxErrorCount = 0;
-    for (const code in errorCounts) {
-      if (errorCounts[code] > maxErrorCount) {
-        mostCommonError = parseInt(code);
-        maxErrorCount = errorCounts[code];
-      }
-    }
-
-    const stats = {
-      uptime: totalRequests
-        ? ((totalRequests - Object.values(errorCounts).reduce((a, b) => a + b, 0)) / totalRequests) * 100
-        : 100,
-      lastDowntime,
-      avgResponseTime: totalRequests ? Math.round(totalResponseTime / totalRequests) : 0,
+    res.json({
+      uptime,
+      avgResponseTime,
       peakLatency,
       peakLatencyTimestamp,
       requestVolume: totalRequests,
-      avgPerDay: dailyUptime.length ? Math.round(totalRequests / dailyUptime.length) : 0,
-      errorRate: totalRequests ? (Object.values(errorCounts).reduce((a, b) => a + b, 0) / totalRequests) * 100 : 0,
+      avgPerDay: totalRequests ? Math.round(totalRequests / totalDays) : 0,
+      errorRate,
       mostCommonError,
-      dailyUptime
-    };
-
-    res.json(stats);
+      lastDowntime,
+      dailyUptime: chartData,
+    });
   } catch (err) {
     console.error("Error fetching stats:", err);
     res.status(500).json({ message: "Server error" });
