@@ -1,16 +1,18 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./Config.css";
 
 export default function Config() {
   const [showModal, setShowModal] = useState(false);
+  const [apiData, setApiData] = useState([]);
 
-  const apiData = [
-    { name: "/api/Social", startDate: "2024-01-01" },
-    { name: "/api/Link", startDate: "2024-02-15" },
-    { name: "/api/Data", startDate: "2024-03-01" },
-    { name: "/api/Weather", startDate: "2024-01-20" },
-    { name: "/api/inventory", startDate: "2024-04-01" },
-  ];
+  useEffect(() => {
+    fetch("http://localhost:5000/api/config") // ✅ fixed full backend URL
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.data) setApiData(data.data);
+      })
+      .catch((err) => console.error("Error fetching config:", err));
+  }, []);
 
   return (
     <div className="config-container">
@@ -27,7 +29,7 @@ export default function Config() {
           <tbody>
             {apiData.map((api, index) => (
               <tr key={index}>
-                <td>{api.name}</td>
+                <td>{api.apiName}</td>
                 <td>{api.startDate}</td>
                 <td
                   className="more-options"
@@ -43,10 +45,7 @@ export default function Config() {
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div
-            className="modal"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">Controls</h3>
 
             <div className="modal-option">
