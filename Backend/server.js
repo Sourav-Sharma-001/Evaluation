@@ -18,6 +18,10 @@ const HISTORY_LIMIT = parseInt(process.env.STATUS_HISTORY_LIMIT, 10) || 1000;
 app.use(cors());
 app.use(express.json());
 
+const tracerMiddleware = require("./middleware/tracerMiddleware");
+app.use(tracerMiddleware);
+
+
 app.get("/", (req, res) => {
   res.send("Server is running...");
 });
@@ -45,12 +49,56 @@ app.post("/tracer/log", async (req, res) => {
     const keyDoc = await TracerKey.findOne({ key: apiKey });
     if (!keyDoc) return res.status(401).json({ message: "Invalid API key" });
 
-    const { apiName, method, statusCode, responseTimeMs, steps, url, endpoint, time } = req.body;
-    if (!apiName || !statusCode || !responseTimeMs || !Array.isArray(steps) || !url) {
-      return res.status(400).json({ message: "Missing required fields" });
+    // Accept many credible shapes; normalize below
+    let {
+      apiName,
+      method,
+      statusCode,
+      responseTimeMs,
+      steps,
+      url,
+      endpoint,
+      time
+    } = req.body;
+
+    // Normalize steps: accept array of strings or array of objects
+    if (!steps) steps = [];
+    if (!Array.isArray(steps)) {
+      // if a single string/object provided, make it an array
+      steps = [steps];
+    }
+    steps = steps.map((s) => {
+      if (typeof s === "string") return { message: s, timestamp: new Date() };
+      // if it has message property keep it, else attempt to stringify
+      if (s && typeof s === "object") {
+        // ensure timestamp exists
+        if (!s.timestamp) s.timestamp = new Date();
+        return s;
+      }
+      return { message: String(s), timestamp: new Date() };
+    });
+
+    // Validate required fields robustly (allow 0 values for numbers)
+    const isValidApiName = typeof apiName === "string" && apiName.trim().length > 0;
+    const isValidStatusCode = typeof statusCode === "number" && Number.isFinite(statusCode);
+    const isValidResponseTime = typeof responseTimeMs === "number" && Number.isFinite(responseTimeMs);
+    const isValidUrl = typeof url === "string" && url.trim().length > 0;
+
+    if (!isValidApiName || !isValidStatusCode || !isValidResponseTime || !Array.isArray(steps) || !isValidUrl) {
+      return res.status(400).json({ message: "Missing or invalid required fields (apiName, statusCode:number, responseTimeMs:number, steps:array, url)" });
     }
 
-    const tracerLog = new TracerLog({ apiName, method, statusCode, responseTimeMs, steps, url, endpoint, time });
+    const tracerLog = new TracerLog({
+      apiName,
+      method: typeof method === "string" ? method : "GET",
+      statusCode,
+      responseTimeMs,
+      steps,
+      url,
+      endpoint: typeof endpoint === "string" ? endpoint : url,
+      time: typeof time !== "undefined" ? time : responseTimeMs
+    });
+
     await tracerLog.save();
 
     res.status(201).json({ message: "Log saved successfully" });
