@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const ApiStatus = require("../models/apiStatusSchema");
+const TracerLog = require("../models/tracerSchema"); // New tracer schema
 
 // GET /status?month=&year=&page=&limit=
 router.get("/status", async (req, res) => {
@@ -74,10 +75,6 @@ router.get("/stats", async (req, res) => {
     let responseTimes = [];
     let errorCounts = {};
 
-    // Track latency with timestamps
-    let peakLatency = 0;
-    let peakLatencyTimestamp = null;
-
     // Daily uptime for chart
     const dailyUptime = Array.from({ length: totalDays }, (_, i) => ({
       date: new Date(year, month - 1, i + 1),
@@ -92,13 +89,7 @@ router.get("/stats", async (req, res) => {
 
       monthStatuses.forEach((s) => {
         totalRequests++;
-        const rt = s.responseTimeMs || 0;
-        responseTimes.push(rt);
-
-        if (rt > peakLatency) {
-          peakLatency = rt;
-          peakLatencyTimestamp = s.timestamp || null;
-        }
+        responseTimes.push(s.responseTimeMs || 0);
 
         const statusCode = s.statusCode;
         if (statusCode >= 200 && statusCode < 300) totalSuccess++;
@@ -118,7 +109,11 @@ router.get("/stats", async (req, res) => {
     const avgResponseTime = responseTimes.length
       ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
       : 0;
-
+    const peakLatency = responseTimes.length ? Math.max(...responseTimes) : 0;
+    const peakLatencyTimestamp =
+      allApis
+        .flatMap((a) => a.statuses)
+        .find((s) => s.responseTimeMs === peakLatency)?.timestamp || null;
     const errorRate = totalRequests ? (totalErrors / totalRequests) * 100 : 0;
     const mostCommonError = Object.keys(errorCounts).length
       ? Object.entries(errorCounts).sort((a, b) => b[1] - a[1])[0][0]
@@ -148,6 +143,37 @@ router.get("/stats", async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching stats:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// NEW: GET /tracer/logs?day=today|yesterday
+router.get("/tracer/logs", async (req, res) => {
+  try {
+    const { day } = req.query;
+    if (!day || !["today", "yesterday"].includes(day)) {
+      return res.status(400).json({ message: "Invalid day parameter" });
+    }
+
+    const now = new Date();
+    let fromDate, toDate;
+    if (day === "today") {
+      fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    } else {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      fromDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
+      toDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
+    }
+
+    const logs = await TracerLog.find({ timestamp: { $gte: fromDate, $lte: toDate } })
+      .sort({ timestamp: -1 })
+      .limit(500);
+
+    res.json({ logs });
+  } catch (err) {
+    console.error("Error fetching tracer logs:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
