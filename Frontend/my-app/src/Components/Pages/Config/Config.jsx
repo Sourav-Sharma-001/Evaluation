@@ -163,6 +163,21 @@ export default function Config() {
               </label>
             </div>
 
+            {/* 📅 Calendar Picker for Start Date */}
+            <div className="modal-option">
+              <label>Start Date</label>
+              <input
+                type="date"
+                className="date-picker"
+                value={
+                  selectedApi.startDate
+                    ? new Date(selectedApi.startDate).toISOString().split("T")[0]
+                    : ""
+                }
+                onChange={(e) => handleChange("startDate", e.target.value)}
+              />
+            </div>
+
             <button className="save-btn" onClick={saveConfig}>
               Save
             </button>
