@@ -1,4 +1,5 @@
 const ApiStatus = require("../models/apiStatusSchema");
+import fetch from 'node-fetch';
 
 // Use same limit as server; configurable via env
 const HISTORY_LIMIT = parseInt(process.env.STATUS_HISTORY_LIMIT, 10) || 1000;
