@@ -34,7 +34,7 @@ export default function Analysis() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:5000/api/stats?month=${m}&year=${y}`);
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/stats?month=${m}&year=${y}`);
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const data = await res.json();
 

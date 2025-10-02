@@ -10,7 +10,7 @@ export default function Config() {
   const [validationErrors, setValidationErrors] = useState([]);
 
   const fetchConfigs = () => {
-    fetch("http://localhost:5000/api/config")
+    fetch("${process.env.REACT_APP_API_BASE_URL}/api/config")
       .then((res) => res.json())
       .then((data) => {
         if (data && data.data) setApiData(data.data);
@@ -76,7 +76,7 @@ export default function Config() {
     if (!selectedApi) return;
     if (!validateConfig()) return;
 
-    fetch("http://localhost:5000/api/config", {
+    fetch("${process.env.REACT_APP_API_BASE_URL}/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(selectedApi),
