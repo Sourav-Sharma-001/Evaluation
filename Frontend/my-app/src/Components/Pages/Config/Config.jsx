@@ -163,7 +163,7 @@ export default function Config() {
               </label>
             </div>
 
-            {/* 📅 Calendar Picker for Start Date */}
+            {/* Calendar Picker */}
             <div className="modal-option">
               <label>Start Date</label>
               <input
@@ -177,6 +177,28 @@ export default function Config() {
                 onChange={(e) => handleChange("startDate", e.target.value)}
               />
             </div>
+
+            {/* Regular Time Inputs */}
+            {selectedApi.scheduleOn && (
+              <div className="time-inputs">
+                <div>
+                  <label>Start Time</label>
+                  <input
+                    type="time"
+                    value={selectedApi.startTime || ""}
+                    onChange={(e) => handleChange("startTime", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>End Time</label>
+                  <input
+                    type="time"
+                    value={selectedApi.endTime || ""}
+                    onChange={(e) => handleChange("endTime", e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
 
             <button className="save-btn" onClick={saveConfig}>
               Save
