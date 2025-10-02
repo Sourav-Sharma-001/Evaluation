@@ -11,17 +11,25 @@ const http = require("http");
 global.fetch = (url, options = {}) => {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith("https") ? https : http;
-    const req = lib.request(url, { method: options.method || "GET", headers: options.headers || {} }, (res) => {
-      let data = "";
-      res.on("data", chunk => data += chunk);
-      res.on("end", () => {
-        resolve({
-          status: res.statusCode,
-          text: async () => data,
-          json: async () => JSON.parse(data)
+    const req = lib.request(
+      url,
+      { method: options.method || "GET", headers: options.headers || {} },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          try {
+            resolve({
+              status: res.statusCode,
+              text: async () => data,
+              json: async () => JSON.parse(data),
+            });
+          } catch (err) {
+            resolve({ status: res.statusCode, text: async () => data });
+          }
         });
-      });
-    });
+      }
+    );
     req.on("error", reject);
     if (options.body) req.write(options.body);
     req.end();
@@ -30,7 +38,7 @@ global.fetch = (url, options = {}) => {
 
 const ApiStatus = require("./models/apiStatusSchema");
 const TracerLog = require("./models/tracerSchema");
-const TracerKey = require("./models/tracerKeySchema"); 
+const TracerKey = require("./models/tracerKeySchema");
 const apiRoutes = require("./routes/apiRoute");
 const configRoute = require("./routes/configRoute");
 const tracerMiddleware = require("./middleware/tracerMiddleware");
@@ -53,10 +61,12 @@ app.get("/", (req, res) => {
 });
 
 // MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => {
+  .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
+    // prevent crash loop on Render
     process.exit(1);
   });
 
@@ -111,7 +121,6 @@ app.post("/tracer/log", async (req, res) => {
 
     await tracerLog.save();
 
-    // Push log into ApiStatus.statuses
     const apiDoc = await ApiStatus.findOne({ name: apiName });
     if (apiDoc) {
       apiDoc.statuses.push({
@@ -155,8 +164,13 @@ cron.schedule("* * * * *", async () => {
 
       try {
         steps.push({ message: "Request sent", timestamp: new Date() });
-        const response = await fetch(api.endpoint);
-        statusCode = response?.status || 0;
+        // Only fetch if endpoint is reachable
+        if (api.endpoint && api.endpoint.startsWith("http")) {
+          const response = await fetch(api.endpoint);
+          statusCode = response?.status || 0;
+        } else {
+          steps.push({ message: "Skipped invalid endpoint", timestamp: new Date() });
+        }
         responseTimeMs = Date.now() - startTs;
         steps.push({ message: "Response received", timestamp: new Date() });
       } catch (err) {
@@ -166,11 +180,9 @@ cron.schedule("* * * * *", async () => {
         console.error(`❌ API check failed for ${api.name}:`, err.message);
       }
 
-      // Ensure required fields are numbers
       if (!Number.isFinite(statusCode)) statusCode = 0;
       if (!Number.isFinite(responseTimeMs)) responseTimeMs = 0;
 
-      // Update API statuses
       api.statuses.push({ statusCode, timestamp: new Date(), responseTimeMs });
 
       if (api.statuses.length > HISTORY_LIMIT) {
@@ -180,7 +192,6 @@ cron.schedule("* * * * *", async () => {
       api.lastChecked = new Date();
       await api.save();
 
-      // Save tracer log safely
       const tracerLog = new TracerLog({
         apiName: api.name || "Unknown API",
         endpoint: api.endpoint || "Unknown endpoint",
@@ -205,7 +216,7 @@ app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// Start server
+// Start server safely
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
