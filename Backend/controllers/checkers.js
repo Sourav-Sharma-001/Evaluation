@@ -22,7 +22,11 @@ async function checkAllApis() {
     api.statuses.push({
       statusCode: code,
       timestamp: new Date(),
-      responseTimeMs
+      responseTimeMs,
+      logType: code === 0 ? "ERROR" : "INFO",  // simple rule
+      requestMethod: "GET",
+      endpoint: api.endpoint,
+      message: code === 0 ? "Request failed" : "Checked successfully"
     });
 
     // keep bounded history; increase limit if needed via env

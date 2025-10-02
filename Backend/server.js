@@ -43,7 +43,7 @@ app.use("/api", configRoute);
 const tracerRoute = require("./routes/tracerRoute");
 app.use("/private-tracer", tracerRoute);
 
-// Secure Tracer POST endpoint
+// Secure Tracer POST endpoint (updated)
 app.post("/tracer/log", async (req, res) => {
   try {
     const apiKey = req.header("x-api-key");
@@ -86,6 +86,28 @@ app.post("/tracer/log", async (req, res) => {
     });
 
     await tracerLog.save();
+
+    // === Push log into ApiStatus.statuses ===
+    const apiDoc = await ApiStatus.findOne({ name: apiName });
+    if (apiDoc) {
+      apiDoc.statuses.push({
+        statusCode,
+        timestamp: new Date(),
+        responseTimeMs,
+        logType: statusCode === 0 ? "ERROR" : "INFO",
+        requestMethod: method || "GET",
+        endpoint: endpoint || url,
+        message: steps.map(s => s.message).join(" | ")
+      });
+
+      if (apiDoc.statuses.length > HISTORY_LIMIT) {
+        apiDoc.statuses = apiDoc.statuses.slice(-HISTORY_LIMIT);
+      }
+
+      apiDoc.lastChecked = new Date();
+      await apiDoc.save();
+    }
+
     res.status(201).json({ message: "Log saved successfully" });
 
   } catch (err) {
