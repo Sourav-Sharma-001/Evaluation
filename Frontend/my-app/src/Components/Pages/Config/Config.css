@@ -310,3 +310,23 @@
   border-color: #3b6fc5;
   box-shadow: 0 0 8px rgba(59, 111, 197, 0.5);
 }
+
+.date-picker {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  background: #111a3c;
+  border: 0.0625rem solid #444;
+  border-radius: 0.25rem;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.validation-errors {
+  margin: 0.5rem 0;
+}
+
+.error-text {
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  margin: 0.125rem 0;
+}

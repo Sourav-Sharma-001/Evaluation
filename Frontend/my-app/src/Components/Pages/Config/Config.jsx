@@ -38,12 +38,27 @@ export default function Config() {
 
   const validateConfig = () => {
     const errors = [];
+
+    // Start Date validation
     if (!selectedApi.startDate) errors.push("Start Date is required");
+
+    // Request Limit validation
+    if (selectedApi.requestLimit < 0)
+      errors.push("Request Limit must be positive");
+
+    // Unique API Name validation
+    const duplicateName = apiData.some(
+      (api) => api.apiName === selectedApi.apiName && api._id !== selectedApi._id
+    );
+    if (duplicateName) errors.push("API Name must be unique");
+
+    // Schedule validation
     if (selectedApi.scheduleOn) {
       if (!selectedApi.startTime || !selectedApi.endTime)
-        errors.push("Both Start and End Time are required when Schedule is ON");
+        errors.push("Start and End Time are required when schedule is ON");
       if (selectedApi.endTime <= selectedApi.startTime)
         errors.push("End Time must be after Start Time");
+
       const overlapping = apiData.some((api) => {
         if (api._id === selectedApi._id || !api.scheduleOn) return false;
         if (api.startDate !== selectedApi.startDate) return false;
@@ -54,13 +69,10 @@ export default function Config() {
             selectedApi.endTime <= api.endTime)
         );
       });
-      if (overlapping) errors.push("Schedule overlaps with another API on same date");
+      if (overlapping)
+        errors.push("Schedule overlaps with another API on the same date");
     }
-    if (selectedApi.requestLimit < 0) errors.push("Request Limit cannot be negative");
-    const duplicateName = apiData.some(
-      (api) => api.apiName === selectedApi.apiName && api._id !== selectedApi._id
-    );
-    if (duplicateName) errors.push("API Name must be unique");
+
     setValidationErrors(errors);
     return errors.length === 0;
   };
@@ -75,7 +87,7 @@ export default function Config() {
       body: JSON.stringify(selectedApi),
     })
       .then((res) => res.json())
-      .then((data) => {
+      .then(() => {
         setShowModal(false);
         fetchConfigs();
       })
@@ -107,7 +119,6 @@ export default function Config() {
     <div className="config-container">
       <h2 className="config-title">API List</h2>
 
-      {/* Filter */}
       <div style={{ marginBottom: "1rem" }}>
         <input
           type="text"
@@ -146,10 +157,7 @@ export default function Config() {
       </div>
 
       {showModal && selectedApi && (
-        <div
-          className="modal-overlay fade-in"
-          onClick={() => setShowModal(false)}
-        >
+        <div className="modal-overlay fade-in" onClick={() => setShowModal(false)}>
           <div className="modal slide-up" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">Controls</h3>
 
@@ -199,9 +207,7 @@ export default function Config() {
               <select
                 className="small"
                 value={selectedApi.requestLimit || 0}
-                onChange={(e) =>
-                  handleChange("requestLimit", parseInt(e.target.value))
-                }
+                onChange={(e) => handleChange("requestLimit", parseInt(e.target.value))}
               >
                 <option>0</option>
                 <option>10</option>
@@ -238,11 +244,7 @@ export default function Config() {
               <input
                 type="date"
                 className="date-picker"
-                value={
-                  selectedApi.startDate
-                    ? new Date(selectedApi.startDate).toISOString().split("T")[0]
-                    : ""
-                }
+                value={selectedApi.startDate ? new Date(selectedApi.startDate).toISOString().split("T")[0] : ""}
                 onChange={(e) => handleChange("startDate", e.target.value)}
               />
             </div>
