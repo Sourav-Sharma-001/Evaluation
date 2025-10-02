@@ -35,6 +35,30 @@ export default function Config() {
   const saveConfig = () => {
     if (!selectedApi) return;
 
+    // --- Validation ---
+    if (!selectedApi.startDate) {
+      alert("Start Date is required");
+      return;
+    }
+
+    if (selectedApi.scheduleOn) {
+      if (!selectedApi.startTime || !selectedApi.endTime) {
+        alert("Both Start Time and End Time are required when Schedule is ON");
+        return;
+      }
+
+      if (selectedApi.endTime <= selectedApi.startTime) {
+        alert("End Time must be after Start Time");
+        return;
+      }
+    }
+
+    if (selectedApi.requestLimit < 0) {
+      alert("Request Limit cannot be negative");
+      return;
+    }
+
+    // --- Save Config ---
     fetch("http://localhost:5000/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
