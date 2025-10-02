@@ -39,20 +39,15 @@ export default function Config() {
   const validateConfig = () => {
     const errors = [];
 
-    // Start Date validation
     if (!selectedApi.startDate) errors.push("Start Date is required");
-
-    // Request Limit validation
     if (selectedApi.requestLimit < 0)
       errors.push("Request Limit must be positive");
 
-    // Unique API Name validation
     const duplicateName = apiData.some(
       (api) => api.apiName === selectedApi.apiName && api._id !== selectedApi._id
     );
     if (duplicateName) errors.push("API Name must be unique");
 
-    // Schedule validation
     if (selectedApi.scheduleOn) {
       if (!selectedApi.startTime || !selectedApi.endTime)
         errors.push("Start and End Time are required when schedule is ON");
@@ -109,9 +104,7 @@ export default function Config() {
 
   const requestSort = (key) => {
     let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
+    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
     setSortConfig({ key, direction });
   };
 
@@ -238,7 +231,6 @@ export default function Config() {
               </label>
             </div>
 
-            {/* Calendar Picker */}
             <div className="modal-option">
               <label>Start Date</label>
               <input
@@ -249,7 +241,6 @@ export default function Config() {
               />
             </div>
 
-            {/* Regular Time Inputs */}
             {selectedApi.scheduleOn && (
               <div className="time-inputs">
                 <div>
@@ -271,13 +262,10 @@ export default function Config() {
               </div>
             )}
 
-            {/* Inline Validation Messages */}
             {validationErrors.length > 0 && (
               <div className="validation-errors">
                 {validationErrors.map((err, idx) => (
-                  <div key={idx} className="error-text">
-                    {err}
-                  </div>
+                  <div key={idx} className="error-text">{err}</div>
                 ))}
               </div>
             )}

@@ -330,3 +330,67 @@
   font-size: 0.85rem;
   margin: 0.125rem 0;
 }
+
+/* Modal fade-in overlay */
+.modal-overlay.fade-in {
+  animation: fadeIn 0.25s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal slide-up */
+.modal.slide-up {
+  transform: translateY(20px);
+  opacity: 0;
+  animation: slideUp 0.25s ease forwards;
+}
+
+@keyframes slideUp {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Table row hover */
+.api-table tbody tr:hover {
+  background-color: rgba(59, 111, 197, 0.1);
+  cursor: pointer;
+}
+
+/* Save button hover */
+.save-btn {
+  transition: background 0.3s, transform 0.2s;
+}
+
+.save-btn:hover {
+  background: #2c56a2;
+  transform: translateY(-2px);
+}
+
+/* Switch hover */
+.slider:hover {
+  background-color: #5a7ed1;
+}
+
+/* Input focus */
+.date-picker:focus, 
+.time-inputs input:focus {
+  outline: none;
+  border-color: #3b6fc5;
+  box-shadow: 0 0 5px rgba(59, 111, 197, 0.5);
+}
+
+/* Validation errors */
+.validation-errors {
+  margin: 0.5rem 0;
+}
+
+.error-text {
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  margin: 0.125rem 0;
+}
