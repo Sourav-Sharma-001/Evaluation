@@ -53,10 +53,33 @@ export default function Config() {
         alert("End Time must be after Start Time");
         return;
       }
+
+      // Check for overlapping schedules with other APIs
+      const overlapping = apiData.some((api) => {
+        if (api._id === selectedApi._id || !api.scheduleOn) return false;
+        if (api.startDate !== selectedApi.startDate) return false;
+        return (
+          (selectedApi.startTime >= api.startTime && selectedApi.startTime < api.endTime) ||
+          (selectedApi.endTime > api.startTime && selectedApi.endTime <= api.endTime)
+        );
+      });
+      if (overlapping) {
+        alert("Schedule overlaps with another API on the same date");
+        return;
+      }
     }
 
     if (selectedApi.requestLimit < 0) {
       alert("Request Limit cannot be negative");
+      return;
+    }
+
+    // Prevent duplicate API names
+    const duplicateName = apiData.some(
+      (api) => api.apiName === selectedApi.apiName && api._id !== selectedApi._id
+    );
+    if (duplicateName) {
+      alert("API Name must be unique");
       return;
     }
 
