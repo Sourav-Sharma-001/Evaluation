@@ -3,8 +3,30 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const cron = require("node-cron");
 require("dotenv").config();
-const fetch = require("node-fetch");
-global.fetch = fetch;
+
+// === CommonJS fetch polyfill for Node.js 22+ ===
+const https = require("https");
+const http = require("http");
+
+global.fetch = (url, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith("https") ? https : http;
+    const req = lib.request(url, { method: options.method || "GET", headers: options.headers || {} }, (res) => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => {
+        resolve({
+          status: res.statusCode,
+          text: async () => data,
+          json: async () => JSON.parse(data)
+        });
+      });
+    });
+    req.on("error", reject);
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+};
 
 const ApiStatus = require("./models/apiStatusSchema");
 const TracerLog = require("./models/tracerSchema");
@@ -45,7 +67,7 @@ app.use("/api", configRoute);
 const tracerRoute = require("./routes/tracerRoute");
 app.use("/private-tracer", tracerRoute);
 
-// Secure Tracer POST endpoint (updated)
+// Secure Tracer POST endpoint
 app.post("/tracer/log", async (req, res) => {
   try {
     const apiKey = req.header("x-api-key");
@@ -89,7 +111,7 @@ app.post("/tracer/log", async (req, res) => {
 
     await tracerLog.save();
 
-    // === Push log into ApiStatus.statuses ===
+    // Push log into ApiStatus.statuses
     const apiDoc = await ApiStatus.findOne({ name: apiName });
     if (apiDoc) {
       apiDoc.statuses.push({
@@ -119,7 +141,6 @@ app.post("/tracer/log", async (req, res) => {
 });
 
 // Cron job: check APIs every minute
-
 cron.schedule("* * * * *", async () => {
   console.log("🕒 Cron job running...");
 
@@ -135,21 +156,22 @@ cron.schedule("* * * * *", async () => {
       try {
         steps.push({ message: "Request sent", timestamp: new Date() });
         const response = await fetch(api.endpoint);
-        statusCode = response.status || 0;
+        statusCode = response?.status || 0;
         responseTimeMs = Date.now() - startTs;
         steps.push({ message: "Response received", timestamp: new Date() });
       } catch (err) {
-        statusCode = 0; // mark as failed
+        statusCode = 0;
         responseTimeMs = Date.now() - startTs;
         steps.push({ message: "Request failed", timestamp: new Date() });
+        console.error(`❌ API check failed for ${api.name}:`, err.message);
       }
 
+      // Ensure required fields are numbers
+      if (!Number.isFinite(statusCode)) statusCode = 0;
+      if (!Number.isFinite(responseTimeMs)) responseTimeMs = 0;
+
       // Update API statuses
-      api.statuses.push({
-        statusCode,
-        timestamp: new Date(),
-        responseTimeMs
-      });
+      api.statuses.push({ statusCode, timestamp: new Date(), responseTimeMs });
 
       if (api.statuses.length > HISTORY_LIMIT) {
         api.statuses = api.statuses.slice(-HISTORY_LIMIT);
@@ -158,15 +180,15 @@ cron.schedule("* * * * *", async () => {
       api.lastChecked = new Date();
       await api.save();
 
-      // Save tracer log with required fields
+      // Save tracer log safely
       const tracerLog = new TracerLog({
-        apiName: api.name,
-        endpoint: api.endpoint,
+        apiName: api.name || "Unknown API",
+        endpoint: api.endpoint || "Unknown endpoint",
         method: "GET",
-        url: api.endpoint,
-        statusCode,       // required
-        responseTimeMs,   // required
-        time: responseTimeMs, // optional, for frontend display
+        url: api.endpoint || "Unknown URL",
+        statusCode,
+        responseTimeMs,
+        time: responseTimeMs,
         steps
       });
 
@@ -177,7 +199,6 @@ cron.schedule("* * * * *", async () => {
     console.error("❌ Cron job error:", err.message || err);
   }
 });
-
 
 // 404 handler
 app.use((req, res) => {
