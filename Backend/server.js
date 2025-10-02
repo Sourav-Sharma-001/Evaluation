@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const cron = require("node-cron");
 require("dotenv").config();
+const fetch = require("node-fetch");
 
 const ApiStatus = require("./models/apiStatusSchema");
 const TracerLog = require("./models/tracerSchema");
@@ -117,6 +118,7 @@ app.post("/tracer/log", async (req, res) => {
 });
 
 // Cron job: check APIs every minute
+
 cron.schedule("* * * * *", async () => {
   console.log("🕒 Cron job running...");
 
@@ -126,7 +128,7 @@ cron.schedule("* * * * *", async () => {
     for (const api of apis) {
       const startTs = Date.now();
       let statusCode = 0;
-      let responseTimeMs = null;
+      let responseTimeMs = 0;
       const steps = [];
 
       try {
@@ -136,11 +138,12 @@ cron.schedule("* * * * *", async () => {
         responseTimeMs = Date.now() - startTs;
         steps.push({ message: "Response received", timestamp: new Date() });
       } catch (err) {
-        statusCode = 0;
+        statusCode = 0; // mark as failed
         responseTimeMs = Date.now() - startTs;
         steps.push({ message: "Request failed", timestamp: new Date() });
       }
 
+      // Update API statuses
       api.statuses.push({
         statusCode,
         timestamp: new Date(),
@@ -154,12 +157,15 @@ cron.schedule("* * * * *", async () => {
       api.lastChecked = new Date();
       await api.save();
 
+      // Save tracer log with required fields
       const tracerLog = new TracerLog({
         apiName: api.name,
         endpoint: api.endpoint,
         method: "GET",
         url: api.endpoint,
-        time: responseTimeMs,
+        statusCode,       // required
+        responseTimeMs,   // required
+        time: responseTimeMs, // optional, for frontend display
         steps
       });
 
@@ -170,6 +176,7 @@ cron.schedule("* * * * *", async () => {
     console.error("❌ Cron job error:", err.message || err);
   }
 });
+
 
 // 404 handler
 app.use((req, res) => {
