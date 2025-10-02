@@ -10,7 +10,7 @@ export default function Tracer() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/tracer/logs`);
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tracer/logs`);
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const data = await res.json();
       setLogs(data || { today: [], yesterday: [] });

@@ -65,7 +65,7 @@ export default function Home() {
         const year = currentMonth.getFullYear();
 
         const res = await fetch(
-          `${process.env.REACT_APP_API_BASE_URL}/api/status?month=${month}&year=${year}`
+          `${import.meta.env.VITE_API_BASE_URL}/api/status?month=${month}&year=${year}`
         );
 
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
