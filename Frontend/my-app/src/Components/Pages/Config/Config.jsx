@@ -10,7 +10,7 @@ export default function Config() {
   const [validationErrors, setValidationErrors] = useState([]);
 
   const fetchConfigs = () => {
-    fetch("${process.env.REACT_APP_API_BASE_URL}/api/config")
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/api/config`)
       .then((res) => res.json())
       .then((data) => {
         if (data && data.data) setApiData(data.data);
