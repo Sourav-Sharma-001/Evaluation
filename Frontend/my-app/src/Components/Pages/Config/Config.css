@@ -251,3 +251,62 @@
   color: #fff;
   font-size: 0.9rem;
 }
+
+
+/* Modal fade and slide animations */
+.fade-in {
+  animation: fadeIn 0.25s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.slide-up {
+  transform: translateY(20px);
+  animation: slideUp 0.25s ease forwards;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Filter input styling */
+.filter-input:focus {
+  outline: none;
+  border-color: #3b6fc5;
+  box-shadow: 0 0 5px #3b6fc5;
+}
+
+/* Inline validation errors */
+.validation-errors {
+  margin-top: 0.5rem;
+}
+
+.error-text {
+  color: #ff6b6b;
+  font-size: 0.85rem;
+}
+
+.filter-input {
+  width: 20rem;
+  padding: 0.5rem 0.75rem;
+  background: #1d2647;
+  color: #fff;
+  border: 0.0625rem solid #3b6fc5;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  transition: 0.3s;
+}
+
+.filter-input::placeholder {
+  color: #aeb7c8;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #3b6fc5;
+  box-shadow: 0 0 8px rgba(59, 111, 197, 0.5);
+}

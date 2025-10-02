@@ -7,6 +7,7 @@ export default function Config() {
   const [selectedApi, setSelectedApi] = useState(null);
   const [filterText, setFilterText] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [validationErrors, setValidationErrors] = useState([]);
 
   const fetchConfigs = () => {
     fetch("http://localhost:5000/api/config")
@@ -23,6 +24,7 @@ export default function Config() {
 
   const openModal = (api) => {
     setSelectedApi({ ...api });
+    setValidationErrors([]);
     setShowModal(true);
   };
 
@@ -34,56 +36,39 @@ export default function Config() {
     setSelectedApi((prev) => ({ ...prev, [field]: value }));
   };
 
-  const saveConfig = () => {
-    if (!selectedApi) return;
-
-    // --- Validation ---
-    if (!selectedApi.startDate) {
-      alert("Start Date is required");
-      return;
-    }
-
+  const validateConfig = () => {
+    const errors = [];
+    if (!selectedApi.startDate) errors.push("Start Date is required");
     if (selectedApi.scheduleOn) {
-      if (!selectedApi.startTime || !selectedApi.endTime) {
-        alert("Both Start Time and End Time are required when Schedule is ON");
-        return;
-      }
-
-      if (selectedApi.endTime <= selectedApi.startTime) {
-        alert("End Time must be after Start Time");
-        return;
-      }
-
-      // Check for overlapping schedules with other APIs
+      if (!selectedApi.startTime || !selectedApi.endTime)
+        errors.push("Both Start and End Time are required when Schedule is ON");
+      if (selectedApi.endTime <= selectedApi.startTime)
+        errors.push("End Time must be after Start Time");
       const overlapping = apiData.some((api) => {
         if (api._id === selectedApi._id || !api.scheduleOn) return false;
         if (api.startDate !== selectedApi.startDate) return false;
         return (
-          (selectedApi.startTime >= api.startTime && selectedApi.startTime < api.endTime) ||
-          (selectedApi.endTime > api.startTime && selectedApi.endTime <= api.endTime)
+          (selectedApi.startTime >= api.startTime &&
+            selectedApi.startTime < api.endTime) ||
+          (selectedApi.endTime > api.startTime &&
+            selectedApi.endTime <= api.endTime)
         );
       });
-      if (overlapping) {
-        alert("Schedule overlaps with another API on the same date");
-        return;
-      }
+      if (overlapping) errors.push("Schedule overlaps with another API on same date");
     }
-
-    if (selectedApi.requestLimit < 0) {
-      alert("Request Limit cannot be negative");
-      return;
-    }
-
-    // Prevent duplicate API names
+    if (selectedApi.requestLimit < 0) errors.push("Request Limit cannot be negative");
     const duplicateName = apiData.some(
       (api) => api.apiName === selectedApi.apiName && api._id !== selectedApi._id
     );
-    if (duplicateName) {
-      alert("API Name must be unique");
-      return;
-    }
+    if (duplicateName) errors.push("API Name must be unique");
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
 
-    // --- Save Config ---
+  const saveConfig = () => {
+    if (!selectedApi) return;
+    if (!validateConfig()) return;
+
     fetch("http://localhost:5000/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -91,27 +76,20 @@ export default function Config() {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("Config saved:", data);
         setShowModal(false);
         fetchConfigs();
       })
       .catch((err) => console.error("Error saving config:", err));
   };
 
-  // --- Filtering ---
   const filteredData = apiData.filter((api) =>
     api.apiName.toLowerCase().includes(filterText.toLowerCase())
   );
 
-  // --- Sorting ---
   const sortedData = [...filteredData].sort((a, b) => {
     if (!sortConfig.key) return 0;
-    let valA = a[sortConfig.key];
-    let valB = b[sortConfig.key];
-    if (sortConfig.key === "startDate") {
-      valA = valA || "";
-      valB = valB || "";
-    }
+    let valA = a[sortConfig.key] || "";
+    let valB = b[sortConfig.key] || "";
     if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
     if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
     return 0;
@@ -129,21 +107,14 @@ export default function Config() {
     <div className="config-container">
       <h2 className="config-title">API List</h2>
 
-      {/* Filter Input */}
+      {/* Filter */}
       <div style={{ marginBottom: "1rem" }}>
         <input
           type="text"
           placeholder="Filter by API Name..."
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
-          style={{
-            padding: "0.5rem",
-            borderRadius: "0.25rem",
-            border: "1px solid #444",
-            background: "#111a3c",
-            color: "#fff",
-            width: "250px",
-          }}
+          className="filter-input"
         />
       </div>
 
@@ -151,16 +122,10 @@ export default function Config() {
         <table className="api-table">
           <thead>
             <tr>
-              <th
-                style={{ cursor: "pointer" }}
-                onClick={() => requestSort("apiName")}
-              >
+              <th onClick={() => requestSort("apiName")}>
                 API Name {sortConfig.key === "apiName" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
               </th>
-              <th
-                style={{ cursor: "pointer" }}
-                onClick={() => requestSort("startDate")}
-              >
+              <th onClick={() => requestSort("startDate")}>
                 Start Date {sortConfig.key === "startDate" ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
               </th>
               <th></th>
@@ -181,8 +146,11 @@ export default function Config() {
       </div>
 
       {showModal && selectedApi && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay fade-in"
+          onClick={() => setShowModal(false)}
+        >
+          <div className="modal slide-up" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">Controls</h3>
 
             <div className="modal-option">
@@ -301,7 +269,22 @@ export default function Config() {
               </div>
             )}
 
-            <button className="save-btn" onClick={saveConfig}>
+            {/* Inline Validation Messages */}
+            {validationErrors.length > 0 && (
+              <div className="validation-errors">
+                {validationErrors.map((err, idx) => (
+                  <div key={idx} className="error-text">
+                    {err}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              className="save-btn"
+              onClick={saveConfig}
+              disabled={validationErrors.length > 0}
+            >
               Save
             </button>
           </div>
