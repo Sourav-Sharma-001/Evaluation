@@ -4,6 +4,7 @@ const cors = require("cors");
 const cron = require("node-cron");
 require("dotenv").config();
 const fetch = require("node-fetch");
+global.fetch = fetch;
 
 const ApiStatus = require("./models/apiStatusSchema");
 const TracerLog = require("./models/tracerSchema");
