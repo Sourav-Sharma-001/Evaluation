@@ -108,7 +108,6 @@ app.post("/tracer/log", async (req, res) => {
       return res.status(400).json({ message: "Missing or invalid required fields" });
     }
 
-    // --- Save Tracer Log ---
     const tracerLog = new TracerLog({
       apiName,
       method: typeof method === "string" ? method : "GET",
@@ -122,7 +121,7 @@ app.post("/tracer/log", async (req, res) => {
 
     await tracerLog.save();
 
-    // --- AUTO UPDATE ApiStatus ---
+    // ✅ Update ApiStatus immediately from this log
     const apiDoc = await ApiStatus.findOne({ name: apiName });
     if (apiDoc) {
       apiDoc.statuses.push({
@@ -141,22 +140,6 @@ app.post("/tracer/log", async (req, res) => {
 
       apiDoc.lastChecked = new Date();
       await apiDoc.save();
-    } else {
-      const newApi = new ApiStatus({
-        name: apiName,
-        endpoint: endpoint || url,
-        statuses: [{
-          statusCode,
-          timestamp: new Date(),
-          responseTimeMs,
-          logType: statusCode === 0 ? "ERROR" : "INFO",
-          requestMethod: method || "GET",
-          endpoint: endpoint || url,
-          message: steps.map(s => s.message).join(" | ")
-        }],
-        lastChecked: new Date()
-      });
-      await newApi.save();
     }
 
     res.status(201).json({ message: "Log saved successfully" });
@@ -167,7 +150,42 @@ app.post("/tracer/log", async (req, res) => {
   }
 });
 
-// Cron job: check APIs every minute
+// === AUTO UPDATE API STATUS FROM TRACER LOGS (cron every 1 min) ===
+cron.schedule("* * * * *", async () => {
+  console.log("🕒 Cron job running for tracer logs...");
+
+  try {
+    const last5Minutes = new Date(Date.now() - 5 * 60 * 1000);
+    const recentLogs = await TracerLog.find({ createdAt: { $gte: last5Minutes } });
+
+    for (const log of recentLogs) {
+      const apiDoc = await ApiStatus.findOne({ name: log.apiName });
+      if (!apiDoc) continue;
+
+      const { statusCode, responseTimeMs, steps, method, endpoint, url } = log;
+      apiDoc.statuses.push({
+        statusCode: statusCode || 0,
+        timestamp: new Date(),
+        responseTimeMs: responseTimeMs || 0,
+        logType: statusCode === 0 ? "ERROR" : "INFO",
+        requestMethod: method || "GET",
+        endpoint: endpoint || url,
+        message: Array.isArray(steps) ? steps.map(s => s.message).join(" | ") : ""
+      });
+
+      if (apiDoc.statuses.length > HISTORY_LIMIT) {
+        apiDoc.statuses = apiDoc.statuses.slice(-HISTORY_LIMIT);
+      }
+
+      apiDoc.lastChecked = new Date();
+      await apiDoc.save();
+    }
+  } catch (err) {
+    console.error("❌ Error updating ApiStatus from tracer logs:", err);
+  }
+});
+
+// Cron job: existing API checks
 cron.schedule("* * * * *", async () => {
   console.log("🕒 Cron job running...");
 
