@@ -100,13 +100,13 @@ app.post("/tracer/log", async (req, res) => {
     });
 
     const isValidApiName = typeof apiName === "string" && apiName.trim().length > 0;
-    const isValidStatusCode = typeof statusCode === "number" && Number.isFinite(statusCode);
-    const isValidResponseTime = typeof responseTimeMs === "number" && Number.isFinite(responseTimeMs);
+    const isValidMethod = typeof method === "string" && method.trim().length > 0;
     const isValidUrl = typeof url === "string" && url.trim().length > 0;
 
-    if (!isValidApiName || !isValidStatusCode || !isValidResponseTime || !Array.isArray(steps) || !isValidUrl) {
+    if (!isValidApiName || !isValidMethod || !isValidUrl) {
       return res.status(400).json({ message: "Missing or invalid required fields" });
     }
+
 
     const tracerLog = new TracerLog({
       apiName,
