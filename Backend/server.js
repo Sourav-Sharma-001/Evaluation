@@ -77,7 +77,7 @@ app.use("/api", configRoute);
 const tracerRoute = require("./routes/tracerRoute");
 app.use("/private-tracer", tracerRoute);
 
-// Secure Tracer POST endpoint
+// Secure Tracer POST endpoint (live calculation)
 app.post("/tracer/log", async (req, res) => {
   try {
     const apiKey = req.header("x-api-key");
@@ -86,9 +86,9 @@ app.post("/tracer/log", async (req, res) => {
     const keyDoc = await TracerKey.findOne({ key: apiKey });
     if (!keyDoc) return res.status(401).json({ message: "Invalid API key" });
 
-    let { apiName, method, statusCode, responseTimeMs, steps, url, endpoint, time } = req.body;
-
+    let { apiName, method, url, endpoint, steps } = req.body;
     if (!steps) steps = [];
+
     if (!Array.isArray(steps)) steps = [steps];
     steps = steps.map((s) => {
       if (typeof s === "string") return { message: s, timestamp: new Date() };
@@ -99,29 +99,43 @@ app.post("/tracer/log", async (req, res) => {
       return { message: String(s), timestamp: new Date() };
     });
 
-    const isValidApiName = typeof apiName === "string" && apiName.trim().length > 0;
-    const isValidMethod = typeof method === "string" && method.trim().length > 0;
-    const isValidUrl = typeof url === "string" && url.trim().length > 0;
-
-    if (!isValidApiName || !isValidMethod || !isValidUrl) {
-      return res.status(400).json({ message: "Missing or invalid required fields" });
+    // Validate minimal required fields
+    if (!apiName || !method || !url) {
+      return res.status(400).json({ message: "Missing required fields: apiName, method, url" });
     }
 
+    const fetchStart = Date.now();
+    let statusCode = 0;
+    let responseTimeMs = 0;
+
+    try {
+      steps.push({ message: "Request sent", timestamp: new Date() });
+
+      const response = await fetch(url, { method });
+      statusCode = response.status;
+      responseTimeMs = Date.now() - fetchStart;
+
+      steps.push({ message: "Response received", timestamp: new Date() });
+    } catch (err) {
+      responseTimeMs = Date.now() - fetchStart;
+      steps.push({ message: "Request failed", timestamp: new Date() });
+      console.error(`❌ API request failed for ${apiName}:`, err.message);
+    }
 
     const tracerLog = new TracerLog({
       apiName,
-      method: typeof method === "string" ? method : "GET",
+      method,
+      url,
+      endpoint: endpoint || url,
       statusCode,
       responseTimeMs,
       steps,
-      url,
-      endpoint: typeof endpoint === "string" ? endpoint : url,
-      time: typeof time !== "undefined" ? time : responseTimeMs
+      time: responseTimeMs,
     });
 
     await tracerLog.save();
 
-    // ✅ Update ApiStatus immediately from this log
+    // Update ApiStatus collection
     const apiDoc = await ApiStatus.findOne({ name: apiName });
     if (apiDoc) {
       apiDoc.statuses.push({
@@ -129,9 +143,9 @@ app.post("/tracer/log", async (req, res) => {
         timestamp: new Date(),
         responseTimeMs,
         logType: statusCode === 0 ? "ERROR" : "INFO",
-        requestMethod: method || "GET",
+        requestMethod: method,
         endpoint: endpoint || url,
-        message: steps.map(s => s.message).join(" | ")
+        message: steps.map(s => s.message).join(" | "),
       });
 
       if (apiDoc.statuses.length > HISTORY_LIMIT) {
@@ -142,8 +156,7 @@ app.post("/tracer/log", async (req, res) => {
       await apiDoc.save();
     }
 
-    res.status(201).json({ message: "Log saved successfully" });
-
+    res.status(201).json({ message: "API tested successfully", tracerLog });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -159,31 +172,40 @@ cron.schedule("* * * * *", async () => {
     const recentLogs = await TracerLog.find({ createdAt: { $gte: last5Minutes } });
 
     for (const log of recentLogs) {
-      const apiDoc = await ApiStatus.findOne({ name: log.apiName });
-      if (!apiDoc) continue;
+      const apiName = log.apiName || "Unknown API";
+      const method = log.method || "GET";
+      const url = log.url || log.endpoint || "Unknown URL";
+      const statusCode = Number.isFinite(log.statusCode) ? log.statusCode : 0;
+      const responseTimeMs = Number.isFinite(log.responseTimeMs) ? log.responseTimeMs : 0;
+      const message = Array.isArray(log.steps)
+        ? log.steps.map((s) => s.message).join(" | ")
+        : "";
 
-      const { statusCode, responseTimeMs, steps, method, endpoint, url } = log;
-      apiDoc.statuses.push({
-        statusCode: statusCode || 0,
-        timestamp: new Date(),
-        responseTimeMs: responseTimeMs || 0,
-        logType: statusCode === 0 ? "ERROR" : "INFO",
-        requestMethod: method || "GET",
-        endpoint: endpoint || url,
-        message: Array.isArray(steps) ? steps.map(s => s.message).join(" | ") : ""
-      });
+      const apiDoc = await ApiStatus.findOne({ name: apiName });
+      if (apiDoc) {
+        apiDoc.statuses.push({
+          statusCode,
+          timestamp: log.createdAt || new Date(),
+          responseTimeMs,
+          logType: statusCode === 0 ? "ERROR" : "INFO",
+          requestMethod: method,
+          endpoint: url,
+          message,
+        });
 
-      if (apiDoc.statuses.length > HISTORY_LIMIT) {
-        apiDoc.statuses = apiDoc.statuses.slice(-HISTORY_LIMIT);
+        if (apiDoc.statuses.length > HISTORY_LIMIT) {
+          apiDoc.statuses = apiDoc.statuses.slice(-HISTORY_LIMIT);
+        }
+
+        apiDoc.lastChecked = new Date();
+        await apiDoc.save();
       }
-
-      apiDoc.lastChecked = new Date();
-      await apiDoc.save();
     }
   } catch (err) {
-    console.error("❌ Error updating ApiStatus from tracer logs:", err);
+    console.error("❌ Cron job error for tracer logs:", err.message || err);
   }
 });
+
 
 // Cron job: existing API checks
 cron.schedule("* * * * *", async () => {
