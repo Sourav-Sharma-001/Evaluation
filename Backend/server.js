@@ -108,6 +108,7 @@ app.post("/tracer/log", async (req, res) => {
       return res.status(400).json({ message: "Missing or invalid required fields" });
     }
 
+    // --- Save Tracer Log ---
     const tracerLog = new TracerLog({
       apiName,
       method: typeof method === "string" ? method : "GET",
@@ -121,6 +122,7 @@ app.post("/tracer/log", async (req, res) => {
 
     await tracerLog.save();
 
+    // --- AUTO UPDATE ApiStatus ---
     const apiDoc = await ApiStatus.findOne({ name: apiName });
     if (apiDoc) {
       apiDoc.statuses.push({
@@ -139,6 +141,22 @@ app.post("/tracer/log", async (req, res) => {
 
       apiDoc.lastChecked = new Date();
       await apiDoc.save();
+    } else {
+      const newApi = new ApiStatus({
+        name: apiName,
+        endpoint: endpoint || url,
+        statuses: [{
+          statusCode,
+          timestamp: new Date(),
+          responseTimeMs,
+          logType: statusCode === 0 ? "ERROR" : "INFO",
+          requestMethod: method || "GET",
+          endpoint: endpoint || url,
+          message: steps.map(s => s.message).join(" | ")
+        }],
+        lastChecked: new Date()
+      });
+      await newApi.save();
     }
 
     res.status(201).json({ message: "Log saved successfully" });
