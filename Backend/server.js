@@ -77,7 +77,7 @@ app.use("/api", configRoute);
 const tracerRoute = require("./routes/tracerRoute");
 app.use("/private-tracer", tracerRoute);
 
-// Secure Tracer POST endpoint (live calculation)
+// Secure Tracer POST endpoint (live calculation & sync only existing APIs)
 app.post("/tracer/log", async (req, res) => {
   try {
     const apiKey = req.header("x-api-key");
@@ -86,39 +86,48 @@ app.post("/tracer/log", async (req, res) => {
     const keyDoc = await TracerKey.findOne({ key: apiKey });
     if (!keyDoc) return res.status(401).json({ message: "Invalid API key" });
 
-    let { apiName, method, url } = req.body;
+    let { apiName, method, url, endpoint, steps } = req.body;
 
-    // Minimal validation
+    // Steps normalization
+    if (!steps) steps = [];
+    if (!Array.isArray(steps)) steps = [steps];
+    steps = steps.map((s) => {
+      if (typeof s === "string") return { message: s, timestamp: new Date() };
+      if (s && typeof s === "object") {
+        if (!s.timestamp) s.timestamp = new Date();
+        return s;
+      }
+      return { message: String(s), timestamp: new Date() };
+    });
+
+    // Minimal required fields validation
     if (!apiName || !method || !url) {
       return res.status(400).json({ message: "Missing required fields: apiName, method, url" });
     }
 
+    // Measure response time
     const fetchStart = Date.now();
     let statusCode = 0;
     let responseTimeMs = 0;
-    let steps = [];
 
     try {
       steps.push({ message: "Request sent", timestamp: new Date() });
-
       const response = await fetch(url, { method });
       statusCode = response.status;
       responseTimeMs = Date.now() - fetchStart;
-
       steps.push({ message: "Response received", timestamp: new Date() });
     } catch (err) {
       responseTimeMs = Date.now() - fetchStart;
-      statusCode = 0;
       steps.push({ message: "Request failed", timestamp: new Date() });
       console.error(`❌ API request failed for ${apiName}:`, err.message);
     }
 
-    // Save tracer log
+    // 1️⃣ Save tracer log
     const tracerLog = new TracerLog({
       apiName,
       method,
       url,
-      endpoint: url,
+      endpoint: endpoint || url,
       statusCode,
       responseTimeMs,
       steps,
@@ -126,36 +135,33 @@ app.post("/tracer/log", async (req, res) => {
     });
     await tracerLog.save();
 
-    // Update ApiStatus collection
-    let apiDoc = await ApiStatus.findOne({ name: apiName });
-    if (!apiDoc) {
-      // create if doesn't exist
-      apiDoc = new ApiStatus({
-        name: apiName,
-        endpoint: url,
-        statuses: [],
-        lastChecked: new Date(),
+    // 2️⃣ Sync ApiStatus only if it exists
+    const apiDoc = await ApiStatus.findOne({ name: apiName });
+    if (apiDoc) {
+      apiDoc.statuses.push({
+        statusCode,
+        timestamp: new Date(),
+        responseTimeMs,
+        logType: statusCode === 0 ? "ERROR" : "INFO",
+        requestMethod: method,
+        endpoint: endpoint || url,
+        message: steps.map((s) => s.message).join(" | "),
       });
+      if (apiDoc.statuses.length > HISTORY_LIMIT) {
+        apiDoc.statuses = apiDoc.statuses.slice(-HISTORY_LIMIT);
+      }
+      apiDoc.lastChecked = new Date();
+      await apiDoc.save();
     }
 
-    apiDoc.statuses.push({
-      statusCode,
-      timestamp: new Date(),
-      responseTimeMs,
-      logType: statusCode === 0 ? "ERROR" : "INFO",
-      requestMethod: method,
-      endpoint: url,
-      message: steps.map(s => s.message).join(" | "),
-    });
-
-    if (apiDoc.statuses.length > HISTORY_LIMIT) {
-      apiDoc.statuses = apiDoc.statuses.slice(-HISTORY_LIMIT);
+    // 3️⃣ Sync Config only if it exists
+    const configDoc = await Config.findOne({ apiName });
+    if (configDoc) {
+      // You can update any dynamic fields if needed here
+      await configDoc.save();
     }
 
-    apiDoc.lastChecked = new Date();
-    await apiDoc.save();
-
-    res.status(201).json({ message: "API tested successfully", tracerLog });
+    res.status(201).json({ message: "API tested and synced successfully", tracerLog });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
